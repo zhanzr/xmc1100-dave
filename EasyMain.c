@@ -31,6 +31,7 @@
 #include  <errno.h>
 #include  <sys/unistd.h> // STDOUT_FILENO, STDERR_FILENO
 #include <stdfix.h>
+#include <complex.h>
 
 #include <XMC1100.h>
 #include <xmc_scu.h>
@@ -173,7 +174,11 @@ int main(void)
 
 		tmpK = XMC1000_CalcTemperature()-273;
 
-		printf("%i %u\n", tmpK, g_Ticks);
+		printf("%i %s\n", tmpK, _NEWLIB_VERSION);
+
+	    double PI = acos(-1);
+	    double complex z = cexp(I * PI); // Euler's formula
+	    printf("exp(i*pi) = %.1f%+.1fi\n", creal(z), cimag(z));
 	}
 
 	return 0;
