@@ -31,6 +31,7 @@
 #include  <errno.h>
 #include  <sys/unistd.h> // STDOUT_FILENO, STDERR_FILENO
 #include <stdfix.h>
+#include <math.h>
 #include <complex.h>
 
 #include <XMC1100.h>
@@ -157,7 +158,7 @@ int main(void)
 		P1_5_reset();
 
 		tmpTick = g_Ticks;
-		while((tmpTick+1000) > g_Ticks)
+		while((tmpTick+2000) > g_Ticks)
 		{
 			__NOP();
 		}
@@ -167,18 +168,63 @@ int main(void)
 		P1_5_set();
 
 		tmpTick = g_Ticks;
-		while((tmpTick+1000) > g_Ticks)
+		while((tmpTick+2000) > g_Ticks)
 		{
 			__NOP();
 		}
 
+		printf("Complex math test\n");
+		for(uint8_t i=0; i<5; ++i)
+		{
+			double rad = i*2*M_PI/8;
+			double complex z = cexp(I * rad);
+			double length = cabs(z);
+			double arg = carg(z);
+			double prj = cproj(z);
+			double complex cnj = conj(z);
+			printf("exp(i*%.3f) = [%.3f%, %.3f]\n",
+					rad,
+					creal(z),cimag(z) );
+			printf("Length=%.3f, Arg=%.3f, Project=%.3f\n",
+					length,
+					arg,
+					prj
+			);
+			printf("Conjulate=[%.3f%, %.3f]\n",
+					creal(cnj),cimag(cnj)
+			);
+
+			double complex logv = clog(z);
+			double complex pow2 = cpow(z, 2+I*0);
+			double complex sqrtv = csqrt(z);
+			printf("log=[%.3f%, %.3f]\n",
+					creal(logv),cimag(logv)
+			);
+			printf("pow2=[%.3f%, %.3f]\n",
+					creal(pow2),cimag(pow2)
+			);
+			printf("sqrt=[%.3f%, %.3f]\n",
+					creal(sqrtv),cimag(sqrtv)
+			);
+
+			double complex sinv = csin(z);
+			double complex cosv = ccos(z);
+			double complex tanv = ctan(z);
+			printf("sin=[%.3f%, %.3f]\n",
+					creal(sinv),cimag(sinv)
+			);
+			printf("cos=[%.3f%, %.3f]\n",
+					creal(cosv),cimag(cosv)
+			);
+			printf("tan=[%.3f%, %.3f]\n",
+					creal(tanv),cimag(tanv)
+			);
+
+			printf("\n");
+		}
+
 		tmpK = XMC1000_CalcTemperature()-273;
-
 		printf("%i %s\n", tmpK, _NEWLIB_VERSION);
-
-	    double PI = acos(-1);
-	    double complex z = cexp(I * PI); // Euler's formula
-	    printf("exp(i*pi) = %.1f%+.1fi\n", creal(z), cimag(z));
 	}
 
 	return 0;
