@@ -104,7 +104,7 @@ int main(void)
 {
 	__IO uint32_t tmpTick;
 	__IO uint32_t deltaTick;
-	__IO int8_t tmpK;
+	__IO register int8_t tmpK;
 	__IO uint32_t i = 0;
 	// Clock configuration
 	XMC_SCU_CLOCK_CONFIG_t clock_config = { .rtc_src =
@@ -148,7 +148,7 @@ int main(void)
 
 	printf("Test %u MHz %s\n", SystemCoreClock / 1000000, __TIME__);
 
-	test_fix();
+//	test_fix();
 
 	while(1)
 	{
@@ -171,56 +171,6 @@ int main(void)
 		while((tmpTick+2000) > g_Ticks)
 		{
 			__NOP();
-		}
-
-		printf("Complex math test\n");
-		for(uint8_t i=0; i<5; ++i)
-		{
-			double rad = i*2*M_PI/8;
-			double complex z = cexp(I * rad);
-			double length = cabs(z);
-			double arg = carg(z);
-			double prj = cproj(z);
-			double complex cnj = conj(z);
-			printf("exp(i*%.3f) = [%.3f%, %.3f]\n",
-					rad,
-					creal(z),cimag(z) );
-			printf("Length=%.3f, Arg=%.3f, Project=%.3f\n",
-					length,
-					arg,
-					prj
-			);
-			printf("Conjulate=[%.3f%, %.3f]\n",
-					creal(cnj),cimag(cnj)
-			);
-
-			double complex logv = clog(z);
-			double complex pow2 = cpow(z, 2+I*0);
-			double complex sqrtv = csqrt(z);
-			printf("log=[%.3f%, %.3f]\n",
-					creal(logv),cimag(logv)
-			);
-			printf("pow2=[%.3f%, %.3f]\n",
-					creal(pow2),cimag(pow2)
-			);
-			printf("sqrt=[%.3f%, %.3f]\n",
-					creal(sqrtv),cimag(sqrtv)
-			);
-
-			double complex sinv = csin(z);
-			double complex cosv = ccos(z);
-			double complex tanv = ctan(z);
-			printf("sin=[%.3f%, %.3f]\n",
-					creal(sinv),cimag(sinv)
-			);
-			printf("cos=[%.3f%, %.3f]\n",
-					creal(cosv),cimag(cosv)
-			);
-			printf("tan=[%.3f%, %.3f]\n",
-					creal(tanv),cimag(tanv)
-			);
-
-			printf("\n");
 		}
 
 		tmpK = XMC1000_CalcTemperature()-273;
