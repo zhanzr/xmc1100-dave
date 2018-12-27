@@ -84,6 +84,9 @@
 							<tool id="com.ifx.xmc4000.printsize.537082119" name="ARM-GCC Print Size" superClass="com.ifx.xmc4000.printsize"/>
 						</toolChain>
 					</folderInfo>
+					<sourceEntries>
+						<entry excluding="test_source/test_reg4.c|test_source/test_reg3a.c|test_source/test_reg3.c|test_source/test_reg2.c|test_source/test_reg.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
+					</sourceEntries>
 				</configuration>
 			</storageModule>
 			<storageModule moduleId="org.eclipse.cdt.core.externalSettings"/>
@@ -170,6 +173,9 @@
 							<tool id="com.ifx.xmc4000.printsize.69918765" name="ARM-GCC Print Size" superClass="com.ifx.xmc4000.printsize"/>
 						</toolChain>
 					</folderInfo>
+					<sourceEntries>
+						<entry excluding="test_source/test_reg4.c|test_source/test_reg3a.c|test_source/test_reg3.c|test_source/test_reg2.c|test_source/test_reg.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
+					</sourceEntries>
 				</configuration>
 			</storageModule>
 			<storageModule moduleId="org.eclipse.cdt.core.externalSettings"/>

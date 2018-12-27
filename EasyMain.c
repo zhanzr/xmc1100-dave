@@ -100,11 +100,16 @@ void test_fix(void)
 	}
 }
 
+__IO register int32_t tmpK asm ("r8");
+//__IO register int32_t tmpL asm ("r9");
+__IO register int32_t tmpL asm ("r8");
+
 int main(void)
 {
-	__IO uint32_t tmpTick;
-	__IO uint32_t deltaTick;
-	__IO register int8_t tmpK;
+	__IO uint32_t tmpTick asm ("r10");
+//	__IO uint32_t deltaTick asm ("r11");
+	__IO uint32_t deltaTick asm ("r10");
+
 	__IO uint32_t i = 0;
 	// Clock configuration
 	XMC_SCU_CLOCK_CONFIG_t clock_config = { .rtc_src =
@@ -172,9 +177,13 @@ int main(void)
 		{
 			__NOP();
 		}
+		deltaTick = tmpTick * 2;
 
 		tmpK = XMC1000_CalcTemperature()-273;
-		printf("%i %s\n", tmpK, _NEWLIB_VERSION);
+		tmpL = tmpK * 10;
+		printf("%i %i %i %i\n",
+				tmpK, tmpL,
+				tmpTick, deltaTick);
 	}
 
 	return 0;
