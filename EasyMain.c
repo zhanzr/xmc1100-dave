@@ -100,15 +100,12 @@ void test_fix(void)
 	}
 }
 
-__IO register int32_t tmpK asm ("r8");
-//__IO register int32_t tmpL asm ("r9");
-__IO register int32_t tmpL asm ("r8");
-
 int main(void)
 {
-	__IO uint32_t tmpTick asm ("r10");
-//	__IO uint32_t deltaTick asm ("r11");
-	__IO uint32_t deltaTick asm ("r10");
+	__IO uint32_t tmpTick;
+	__IO int32_t tmpK;
+	__IO int32_t tmpL;
+	__IO uint32_t deltaTick;
 
 	__IO uint32_t i = 0;
 	// Clock configuration
@@ -153,7 +150,40 @@ int main(void)
 
 	printf("Test %u MHz %s\n", SystemCoreClock / 1000000, __TIME__);
 
-//	test_fix();
+	//	test_fix();
+
+	//Test unsigned integer division
+	{
+		uint32_t au = 101;
+		uint32_t bu = 10;
+		uint32_t cu = au/bu;
+		uint32_t du = au%bu;
+
+		printf("%u %u -> %u %u\n",
+				au, bu, cu, du);
+	}
+
+	//Test signed integer division
+	{
+		int32_t ai = 101;
+		int32_t bi = 10;
+		int32_t ci = ai/bi;
+		int32_t di = ai%bi;
+
+		printf("%i %i -> %i %i\n",
+				ai, bi, ci, di);
+	}
+
+	//Test float division
+	{
+		float af = 101.0;
+		float bf = 10.0;
+		float cf = af/bf;
+		//		float df = af%bf;
+
+		printf("%f %f -> %f\n",
+				af, bf, cf);
+	}
 
 	while(1)
 	{
