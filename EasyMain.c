@@ -28,8 +28,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
-#include  <errno.h>
-#include  <sys/unistd.h> // STDOUT_FILENO, STDERR_FILENO
+#include <errno.h>
+#include <sys/unistd.h> // STDOUT_FILENO, STDERR_FILENO
 #include <stdfix.h>
 #include <math.h>
 #include <complex.h>
@@ -43,6 +43,7 @@
 
 #include "GPIO.h"
 #include "XMC1000_TSE.h"
+#include "asm_prototype.h"
 
 #define UART_RX P1_3
 #define UART_TX P1_2
@@ -73,35 +74,12 @@ int _write(int file, char *data, int len) {
 	return len;
 }
 
-void test_fix(void)
-{
-	printf("Ref: http://www.open-std.org/jtc1/sc22/wg14/www/docs/n1169.pdf \n");
-
-	printf("fract size:%u accum size:%u sat fract size:%u sat accum size:%u\n",
-			sizeof(fract), sizeof(accum), sizeof(sat fract), sizeof(sat accum));
-
-	{
-		fract f = 0.1r;
-		fract res;
-		for(int i=0; i<10; ++i)
-		{
-			res = f * i;
-
-			printf("%u %04X\n", res, *((uint16_t*)&res));
-		}
-
-		f = -0.1r;
-		for(int i=0; i<10; ++i)
-		{
-			res = f * i;
-
-			printf("%u %04X\n", res, *((uint16_t*)&res));
-		}
-	}
+void __attribute__((section(".ram_code"))) TestFunct(void){
+	printf("%08X %s\n", TestFunct, __func__);
+	printf("CPUID:%08X\n", SCB->CPUID);
 }
 
-int main(void)
-{
+int main(void){
 	__IO uint32_t tmpTick;
 	__IO int32_t tmpK;
 	__IO int32_t tmpL;
@@ -150,61 +128,153 @@ int main(void)
 
 	printf("Test %u MHz %s\n", SystemCoreClock / 1000000, __TIME__);
 
-	//	test_fix();
-
-	//Test unsigned integer division
-	{
-		uint32_t au = 101;
-		uint32_t bu = 10;
-		uint32_t cu = au/bu;
-		uint32_t du = au%bu;
-
-		printf("%u %u -> %u %u\n",
-				au, bu, cu, du);
-	}
-
-	//Test signed integer division
-	{
-		int32_t ai = 101;
-		int32_t bi = 10;
-		int32_t ci = ai/bi;
-		int32_t di = ai%bi;
-
-		printf("%i %i -> %i %i\n",
-				ai, bi, ci, di);
-	}
-
-	//Test float division
-	{
-		float af = 101.0;
-		float bf = 10.0;
-		float cf = af/bf;
-		//		float df = af%bf;
-
-		printf("%f %f -> %f\n",
-				af, bf, cf);
-	}
-
 	while(1)
 	{
-		P0_5_reset();
-		P0_6_reset();
-		P1_4_reset();
-		P1_5_reset();
+		P0_5_toggle();
+		//		P0_6_toggle();
+		//		P1_4_toggle();
+		//		P1_5_toggle();
+
+		printf("ASM Test 1 Result:%u\n", asm_get_8bit_number());
+		printf("ASM Test 2 Result:%08X\t[%08X]\n", asm_get_xor(0x12345678, 0x34567890), 0x12345678^0x34567890);
+		printf("ASM Test 3 Direct Jump:%08X\n", TestFunct);
+		printf("Jump 1, Before.%08X\n", __get_MSP());
+		asm_direct_jump_1(TestFunct);
+		printf("Jump 1, After.%08X\n\n", __get_MSP());
+
+		printf("Jump 2, Before.%08X\n", __get_MSP());
+		asm_direct_jump_2(TestFunct);
+		printf("Jump 2, After.%08X\n\n", __get_MSP());
+
+
+		printf("ASM Test 4 :%u\t[%u]\n", asm_add2(34), 34+2);
+		printf("ASM Test 5 :%u\t[%u]\n", asm_simple_add(123, 456), 123+456);
+		printf("ASM Test 6 :%u\t[%u]\n", asm_pc_add(), 7);
+
+		printf("ASM Test 7 :%d\t[%d]\n", asm_sub20(34), 34-20);
+		printf("ASM Test 8 :%d\t[%d]\n", asm_simple_sub(123, 456), 123-456);
+		printf("ASM Test 9 :%d\t[%d]\n", asm_get_neg(1024), 0-1024);
+
+		printf("ASM Test 10 Result:%u\t[%u]\n", asm_simple_mul(123, 456), 123*456);
+
+		//Test Addition/Mulitiplication Cycles
+#define	TEST_ADD_MUL_NUM	500000
+		//If the multiplication takes similar cycles, it is a single cycle multiplication implementation
+		uint32_t tmpTick = g_Ticks;
+		for(uint32_t i=0; i<TEST_ADD_MUL_NUM; ++i)
+		{
+			uint32_t tn = 101;
+			asm_simple_add(tn, 456);
+		}
+		tmpTick = g_Ticks-tmpTick;
+		printf("A:%u\n", tmpTick);
 
 		tmpTick = g_Ticks;
-		while((tmpTick+2000) > g_Ticks)
+		for(uint32_t i=0; i<TEST_ADD_MUL_NUM; ++i)
 		{
+			uint32_t tn = 101;
+			asm_simple_mul(tn, 456);
+		}
+		tmpTick = g_Ticks-tmpTick;
+		printf("M:%u\n", tmpTick);
+
+		//Test Division
+		{
+			uint32_t ta = 10;
+			uint32_t tb = 2;
+			uint32_t tc = ta/tb;
+			printf("%u %u %u\n", ta, tb, tc);
+		}
+
+		printf("ASM Test 11 Result:%u\t[%u]\n", asm_test_cmp(123, 456), (123==456));
+		printf("ASM Test 12 Result:%u\t[%u]\n", asm_test_cmn(123, 456), (123!=456));
+		printf("ASM Test 13 Result:%08X\t[%08X]\n", asm_get_and(0x12345678, 0x34567890), 0x12345678 & 0x34567890);
+		printf("ASM Test 14 Result:%08X\t[%08X]\n", asm_get_or(0x12345678, 0x34567890), (0x12345678 | 0x34567890));
+		printf("ASM Test 15 Result:%08X\t[%08X]\n", asm_get_not(0x12345678), 0-0x12345678);
+
+		uint32_t g_TestVar32 = 0x12345678;
+		printf("ASM Test 20 Result:%08X\t[%08X]\n", asm_ldr32(&g_TestVar32), g_TestVar32);
+		asm_str32(&g_TestVar32, 0x78904563);
+		printf("ASM Test 21 Result:%08X\t[%08X]\n", asm_ldr32(&g_TestVar32), g_TestVar32);
+		printf("ASM Test 22 Result:%u\t[%d]\n", asm_test_push_pop(123, 456), 123+456+456+4);
+
+		//Part 7: Test Extend, Reverse
+		printf("Part 7\n");
+		printf("ASM Test 23 Result:%08X\t[%08X]\n", asm_s16ext((int16_t)0x8001), (int32_t)0x8001);
+		printf("ASM Test 24 Result:%08X\t[%08X]\n", asm_s8ext((int8_t)0xC4), (int32_t)0xC4);
+		printf("ASM Test 25 Result:%08X\t[%08X]\n", asm_u16ext((uint16_t)0x8001), (uint32_t)0x8001);
+		printf("ASM Test 26 Result:%08X\t[%08X]\n", asm_rev(0x123456C8), __REV(0x123456C8));
+		printf("ASM Test 27 Result:%08X\t[%08X]\n", asm_rev16(0x123456C8), __REV16(0x123456C8));
+		printf("ASM Test 28 Result:%08X\t[%08X]\n", asm_revsh(0x123456C8), __REVSH(0x123456C8));
+
+		//Part 8: Test SVC, MSR, MRS
+		printf("Part 8\n");
+		printf("ASM Test 29, Before SVC\n");
+		//__ASM volatile ("svc 1" : : : "memory");
+		//		asm_svc_1(1000);
+		printf("After SVC\n");
+
+		printf("ASM Test 30 Result:%08X\n", asm_test_mrs());
+		printf("ASM Test 31 Tick:%u\n", SysTick->VAL);
+		asm_test_msr(0x00000001);
+		uint32_t p1 = asm_test_mrs();
+		asm_test_msr(0x00000000);
+		uint32_t p2 = asm_test_mrs();
+		printf("%08X\t%08X\n", p1, p2);
+
+		//bkpt when no debugger will cause hardfault
+		printf("Before A breakpoint\n");
+		//		__BKPT(10);
+		printf("After breakpoint\n");
+
+		//unaligned access
+		uint8_t tmpU8A[]={0x12, 0x34, 0x56, 0x78};
+		uint16_t* pU16 = (uint16_t*)&tmpU8A[0];
+		printf("%p %04X\n", pU16, *pU16);
+		pU16 = (uint16_t*)&tmpU8A[2];
+		printf("%p %04X\n", pU16, *pU16);
+
+		printf("Before Unaligned access\n");
+//		pU16 = (uint16_t*)&tmpU8A[1];
+//		printf("%p %04X\n", pU16, *pU16);
+		printf("After Unaligned access\n");
+
+//• a system-generated bus error on a load or store
+		uint32_t* pU32_NonExist = 0x60000000;
+		printf("Before LDR non exist\n");
+//		printf("%08X\t[%08X]\n", asm_ldr32(pU32_NonExist), *pU32_NonExist);
+		printf("After LDR non exist\n");
+		printf("Before STR non exist\n");
+//		asm_str32(pU32_NonExist, 0x78904563);
+		printf("%08X\t[%08X]\n", 0x78904563, pU32_NonExist);
+		printf("After STR non exist\n");
+
+//• execution of an instruction from an XN memory address
+//• execution of an instruction when not in Thumb-State as a result of the T-bit being previously cleared to 0
+		printf("Before exe non exist\n");
+//		asm_direct_jump_2(pU32_NonExist);
+		printf("After exe non exist\n");
+
+		printf("Before ram function\n");
+		TestFunct();
+		printf("After ram function\n");
+//• execution of an Undefined instruction
+		uint32_t tmpU32 = ((uint32_t)TestFunct) - 1;
+		asm_str32(tmpU32, 0x78904563);
+		printf("%s\n", __func__);
+		__ISB();
+		__DSB();
+		__DMB();
+		tmpTick = g_Ticks;
+		while((tmpTick+100) > g_Ticks){
 			__NOP();
 		}
-		P0_5_set();
-		P0_6_set();
-		P1_4_set();
-		P1_5_set();
+		printf("Before ram function modified\n");
+		TestFunct();
+		printf("After ram function modified\n");
 
 		tmpTick = g_Ticks;
-		while((tmpTick+2000) > g_Ticks)
-		{
+		while((tmpTick+2000) > g_Ticks){
 			__NOP();
 		}
 		deltaTick = tmpTick * 2;
