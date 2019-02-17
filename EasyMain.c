@@ -64,12 +64,6 @@ void HAL_Delay(uint32_t d){
 	}
 }
 
-void LD2_ON(void){
-}
-
-void LD2_OFF(void){
-}
-
 //Retarget IO
 int _write(int file, char *data, int len) {
 	int i;
@@ -91,23 +85,6 @@ void __attribute__((section(".ram_code"))) TestFunct(void){
 	printf("%08X %s\n", TestFunct, __func__);
 	printf("CPUID:%08X\n", SCB->CPUID);
 }
-
-
-XMC_GPIO_CONFIG_t rx_pin_config;
-XMC_GPIO_CONFIG_t tx_pin_config;
-XMC_GPIO_CONFIG_t selo_pin_config;
-XMC_GPIO_CONFIG_t clk_pin_config;
-
-/**
- * @brief SPI configuration structure
- */
-XMC_SPI_CH_CONFIG_t spi_config =
-{
-		.baudrate = 1000000U,
-		.bus_mode = XMC_SPI_CH_BUS_MODE_MASTER,
-		.selo_inversion = XMC_SPI_CH_SLAVE_SEL_INV_TO_MSLS,
-		.parity_mode = XMC_USIC_CH_PARITY_MODE_NONE
-};
 
 extern void interface_init(void);
 extern void protocol_init(void);
@@ -152,11 +129,11 @@ int main(void){
 	P1_4_set_mode(OUTPUT_OD_GP);
 	P1_5_set_mode(OUTPUT_OD_GP);
 
-	// Turn ON all LEDs
-	P0_5_reset();
-	P0_6_reset();
-	P1_4_reset();
-	P1_5_reset();
+	// Turn OFF all LEDs
+	P0_5_set();
+	P0_6_set();
+	P1_4_set();
+	P1_5_set();
 
 	// System Timer initialization
 	SysTick_Config(SystemCoreClock / 1000);

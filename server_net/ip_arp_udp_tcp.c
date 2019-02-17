@@ -44,47 +44,39 @@ static uint32_t checksum(uint8_t *buf, uint32_t len,uint8_t type){
 	//      2=tcp
 	uint32_t sum = 0;
 
-	//if(type==0){
-	//        // do not add anything
-	//}
-	if(type==1)
-	{
+	if(type==0){
+	        // do not add anything
+	}else if(type==1){
 		sum+=IP_PROTO_UDP_V; // protocol udp
 		// the length here is the length of udp (data+header len)
 		// =length given to this function - (IP.scr+IP.dst length)
 		sum+=len-8; // = real tcp len
-	}
-	if(type==2)
-	{
+	}else if(type==2){
 		sum+=IP_PROTO_TCP_V; 
 		// the length here is the length of tcp (data+header len)
 		// =length given to this function - (IP.scr+IP.dst length)
 		sum+=len-8; // = real tcp len
 	}
 	// build the sum of 16bit words
-	while(len >1)
-	{
+	while(len >1){
 		sum += 0xFFFF & (*buf<<8|*(buf+1));
 		buf+=2;
 		len-=2;
 	}
 	// if there is a byte left then add it (padded with zero)
-	if (len)
-	{
+	if (len){
 		sum += (0xFF & *buf)<<8;
 	}
 	// now calculate the sum over the bytes in the sum
 	// until the result is only 16bit long
-	while (sum>>16)
-	{
+	while (sum>>16){
 		sum = (sum & 0xFFFF)+(sum >> 16);
 	}
 	// build 1's complement:
 	return( (uint32_t) sum ^ 0xFFFF);
 }
 
-uint8_t eth_type_is_arp_and_my_ip(uint8_t *buf,uint32_t len)
-{
+uint8_t eth_type_is_arp_and_my_ip(uint8_t *buf,uint32_t len){
 	if (len<41){
 		return(0);
 	}
@@ -106,8 +98,7 @@ uint8_t eth_type_is_arp_and_my_ip(uint8_t *buf,uint32_t len)
 	return(1);
 }
 
-uint8_t eth_type_is_ip_and_my_ip(uint8_t *buf,uint32_t len)
-{
+uint8_t eth_type_is_ip_and_my_ip(uint8_t *buf,uint32_t len){
 	if (len<42){
 		return(0);
 	}
@@ -117,7 +108,7 @@ uint8_t eth_type_is_ip_and_my_ip(uint8_t *buf,uint32_t len)
 		return(0);
 	}
 
-		// must be IP V4 and 20 byte header
+	// must be IP V4 and 20 byte header
 	if (buf[IP_HEADER_LEN_VER_P]!=0x45)	{
 		return(0);
 	}
@@ -147,7 +138,7 @@ static void fill_ip_hdr_checksum(uint8_t *buf){
 	buf[IP_FLAGS_P]=0x40; // don't fragment
 	buf[IP_FLAGS_P+1]=0;  // fragement offset
 	buf[IP_TTL_P]=64; // ttl
-	// calculate the checksum:
+
 	ck=checksum(&buf[IP_P], IP_HEADER_LEN,0);
 	buf[IP_CHECKSUM_P]=ck>>8;
 	buf[IP_CHECKSUM_P+1]=ck& 0xff;
@@ -170,12 +161,11 @@ void make_ip(uint8_t *buf){
 // After calling this function you can fill in the first data byte at TCP_OPTIONS_P+4
 // If cp_seq=0 then an initial sequence number is used (should be use in synack)
 // otherwise it is copied from the packet we received
-void make_tcphead(uint8_t *buf,uint32_t rel_ack_num,uint8_t mss,uint8_t cp_seq)
-{
+void make_tcphead(uint8_t *buf,uint32_t rel_ack_num,uint8_t mss,uint8_t cp_seq){
 	uint8_t i=0;
 	uint8_t tseq;
-	while(i<2)
-	{
+
+	while(i<2){
 		buf[TCP_DST_PORT_H_P+i]=buf[TCP_SRC_PORT_H_P+i];
 		buf[TCP_SRC_PORT_H_P+i]=0; // clear source port
 		i++;
@@ -185,25 +175,21 @@ void make_tcphead(uint8_t *buf,uint32_t rel_ack_num,uint8_t mss,uint8_t cp_seq)
 	i=4;
 	// sequence numbers:
 	// add the rel ack num to SEQACK
-	while(i>0)
-	{
+	while(i>0){
 		rel_ack_num=buf[TCP_SEQ_H_P+i-1]+rel_ack_num;
 		tseq=buf[TCP_SEQACK_H_P+i-1];
 		buf[TCP_SEQACK_H_P+i-1]=0xff&rel_ack_num;
-		if (cp_seq)
-		{
+		if (cp_seq){
 			// copy the acknum sent to us into the sequence number
 			buf[TCP_SEQ_H_P+i-1]=tseq;
-		}
-		else
-		{
+		} else {
 			buf[TCP_SEQ_H_P+i-1]= 0; // some preset vallue
 		}
 		rel_ack_num=rel_ack_num>>8;
 		i--;
 	}
-	if (cp_seq==0)
-	{
+
+	if (cp_seq==0){
 		// put inital seq number
 		buf[TCP_SEQ_H_P+0]= 0;
 		buf[TCP_SEQ_H_P+1]= 0;
@@ -223,8 +209,7 @@ void make_tcphead(uint8_t *buf,uint32_t rel_ack_num,uint8_t mss,uint8_t cp_seq)
 	// It is calculated in units of 4 bytes. 
 	// E.g 24 bytes: 24/4=6 => 0x60=header len field
 	//buf[TCP_HEADER_LEN_P]=(((TCP_HEADER_LEN_PLAIN+4)/4)) <<4; // 0x60
-	if (mss)
-	{
+	if (mss){
 		// the only option we set is MSS to 1408:
 		// 1408 in hex is 0x580
 		buf[TCP_OPTIONS_P]=2;
@@ -233,17 +218,14 @@ void make_tcphead(uint8_t *buf,uint32_t rel_ack_num,uint8_t mss,uint8_t cp_seq)
 		buf[TCP_OPTIONS_P+3]=0x80;
 		// 24 bytes:
 		buf[TCP_HEADER_LEN_P]=0x60;
-	}
-	else
-	{
+	} else {
 		// no options:
 		// 20 bytes:
 		buf[TCP_HEADER_LEN_P]=0x50;
 	}
 }
 
-void make_arp_answer_from_request(uint8_t *buf)
-{
+void make_arp_answer_from_request(uint8_t *buf){
 	make_eth(buf); 
 
 	buf[ETH_ARP_OPCODE_H_P]=ETH_ARP_OPCODE_REPLY_H_V;  
@@ -264,8 +246,7 @@ void make_arp_answer_from_request(uint8_t *buf)
 	enc28j60PacketSend(42,buf); 
 }
 
-void make_echo_reply_from_request(uint8_t *buf,uint32_t len)
-{
+void make_echo_reply_from_request(uint8_t *buf,uint32_t len) {
 	make_eth(buf);
 	make_ip(buf);
 
@@ -303,8 +284,7 @@ void make_udp_reply_from_request(uint8_t *buf,char *data,uint32_t datalen,uint32
 	buf[UDP_CHECKSUM_H_P]=0;
 	buf[UDP_CHECKSUM_L_P]=0;
 	// copy the data:
-	while(i<datalen)
-	{
+	while(i<datalen) {
 		buf[UDP_DATA_P+i]=data[i];
 		i++;
 	}
@@ -339,10 +319,10 @@ void make_tcp_synack_from_syn(uint8_t *buf){
 // get a pointer to the start of tcp data in buf
 // Returns 0 if there is no data
 // You must call init_len_info once before calling this function
-uint32_t get_tcp_data_pointer(void){
+uint32_t get_tcp_data_pointer(void) {
 	if (info_data_len){
 		return((uint32_t)TCP_SRC_PORT_H_P+info_hdr_len);
-	}else{
+	} else {
 		return(0);
 	}
 }
@@ -376,7 +356,6 @@ uint32_t fill_tcp_data_p(uint8_t *buf,uint32_t pos, const uint8_t *progmem_s){
 // this string could be filled.
 uint32_t fill_tcp_data(uint8_t *buf,uint32_t pos, const char *s){
 	// fill in tcp data at position pos
-	//
 	// with no options the data starts after the checksum + 2 more bytes (urgent ptr)
 	while (*s) {
 		buf[TCP_CHECKSUM_L_P+3+pos]=*s;
@@ -388,7 +367,7 @@ uint32_t fill_tcp_data(uint8_t *buf,uint32_t pos, const char *s){
 
 // Make just an ack packet with no tcp data inside
 // This will modify the eth/ip/tcp header 
-void make_tcp_ack_from_any(uint8_t *buf){
+void make_tcp_ack_from_any(uint8_t *buf) {
 	uint32_t j;
 	make_eth(buf);
 	// fill the header:
@@ -396,7 +375,7 @@ void make_tcp_ack_from_any(uint8_t *buf){
 	if (info_data_len==0){
 		// if there is no data then we must still acknoledge one packet
 		make_tcphead(buf,1,0,1); // no options
-	}else{
+	} else {
 		make_tcphead(buf,info_data_len,0,1); // no options
 	}
 
@@ -422,8 +401,7 @@ void make_tcp_ack_from_any(uint8_t *buf){
 // You can use this function only immediately after make_tcp_ack_from_any
 // This is because this function will NOT modify the eth/ip/tcp header except for
 // length and checksum
-void make_tcp_ack_with_data(uint8_t *buf,uint32_t dlen)
-{
+void make_tcp_ack_with_data(uint8_t *buf,uint32_t dlen) {
 	uint32_t j;
 	// fill the header:
 	// This code requires that we send only one data packet

@@ -7,13 +7,14 @@
 
 #include <XMC1100.h>
 #include <xmc_spi.h>
+#include <xmc_gpio.h>
+
+#include "GPIO.h"
 
 #include "enc28j60.h"
 #include "ip_arp_udp_tcp.h"
 #include "net.h"
 
-extern void LD2_ON(void);
-extern void LD2_OFF(void);
 extern volatile uint16_t g_adc_buf[2];
 
 extern const uint8_t g_ip_addr[4];
@@ -24,36 +25,39 @@ extern const uint8_t g_mac_addr[6];
 
 static uint8_t buf[BUFFER_SIZE+1];
 
-static uint8_t g_led_state;
-
 int32_t g_tmpK;
 
-// takes a string of the form password/commandNumber and analyse it
-// return values: -1 invalid password, otherwise command number
-//                -2 no command given but password valid
-signed char analyse_get_url(char *str){
-	uint8_t i=0;
+const char ON_STR[] = "On";
+const char OFF_STR[] = "Off";
 
-	// find first "/"
-	// passw not longer than 9 char:
-	while(*str && i<10 && *str >',' && *str<'{'){
-		if (*str=='/'){
-			str++;
-			break;
-		}
-		i++;
-		str++;
+void LD_05_ON(void){
+	XMC_GPIO_SetOutputLow(XMC_GPIO_PORT0, 5);
+}
+
+void LD_05_OFF(void){
+	XMC_GPIO_SetOutputHigh(XMC_GPIO_PORT0, 5);
+}
+
+#define LED_ON_STAT		0
+#define LED_OFF_STAT	1
+uint32_t LD_05_Stat(void) {
+	return XMC_GPIO_GetInput(XMC_GPIO_PORT0, 5);
+}
+
+int8_t analyse_get_url(char *str) {
+	char* p_str = str;
+
+	if (0==strncmp(p_str, ON_STR, strlen(ON_STR))) {
+		return 1;
+	} else if (0==strncmp(p_str, OFF_STR, strlen(OFF_STR))) {
+		return 0;
+	} else {
+		return(-1);
 	}
-	if (*str < 0x3a && *str > 0x2f){
-		// is a ASCII number, return it
-		return(*str-'0');
-	}
-	return(-2);
 }
 
 // prepare the webpage by writing the data to the tcp send buffer
-uint32_t print_webpage(uint8_t *buf,uint8_t on_off)
-{
+uint32_t print_webpage(uint8_t *buf){
 	uint32_t plen;
 	uint8_t tmp_compose_buf[64];
 			
@@ -72,9 +76,8 @@ uint32_t print_webpage(uint8_t *buf,uint8_t on_off)
 	plen=fill_tcp_data(buf,plen,(const char*)tmp_compose_buf);
 	plen=fill_tcp_data_p(buf,plen,("<p>Provided by Cortex M board\r\n"));
 
-	sprintf((char*)tmp_compose_buf, "<p>system Ticks:%u LED State:%u, soft_spi:%u\r\n",
+	sprintf((char*)tmp_compose_buf, "<p>system Ticks:%u, soft_spi:%u\r\n",
 	SysTick->VAL,
-	g_led_state,
 	SOFT_SPI);
 	plen=fill_tcp_data(buf,plen,(const char*)tmp_compose_buf);		
 	
@@ -82,10 +85,14 @@ uint32_t print_webpage(uint8_t *buf,uint8_t on_off)
 	plen=fill_tcp_data(buf,plen,(const char*)tmp_compose_buf);				
 	
 	plen=fill_tcp_data_p(buf,plen,("\r\n<p>LED Status:"));
-	if (on_off){
-		plen=fill_tcp_data_p(buf,plen,("<font color=\"#00FF00\"> On</font>"));
-	}else{
-		plen=fill_tcp_data_p(buf,plen,("Off"));
+	if ((LED_ON_STAT == LD_05_Stat())){
+		plen=fill_tcp_data_p(buf,plen,("<font color=\"#00FF00\">"));
+		plen=fill_tcp_data_p(buf,plen,(ON_STR));
+		plen=fill_tcp_data_p(buf,plen,("</font>"));
+	} else {
+		plen=fill_tcp_data_p(buf,plen,("<font color=\"#FF0000\">"));
+		plen=fill_tcp_data_p(buf,plen,(OFF_STR));
+		plen=fill_tcp_data_p(buf,plen,("</font>"));
 	}
 
 	plen=fill_tcp_data_p(buf,plen,("<a href=\""));
@@ -95,11 +102,12 @@ uint32_t print_webpage(uint8_t *buf,uint8_t on_off)
 	plen=fill_tcp_data_p(buf,plen,("\">[Refresh]</a>\r\n<p><a href=\""));
 
 	plen=fill_tcp_data(buf,plen, (const char*)tmp_compose_buf);
-	if (on_off){
-		plen=fill_tcp_data_p(buf,plen,("0\">LED Off</a><p>"));
+	if ((LED_ON_STAT == LD_05_Stat())){
+		plen=fill_tcp_data_p(buf,plen,(OFF_STR));
 	}else{
-		plen=fill_tcp_data_p(buf,plen,("1\">LED On</a><p>"));
+		plen=fill_tcp_data_p(buf,plen,(ON_STR));
 	}
+	plen=fill_tcp_data_p(buf,plen,("\">LED Switch</a><p>"));
 
 	plen=fill_tcp_data_p(buf,plen,("<hr><p>XMC1 Board Simple Server\r\n"));
 
@@ -107,7 +115,7 @@ uint32_t print_webpage(uint8_t *buf,uint8_t on_off)
 	plen=fill_tcp_data_p(buf,plen,("</body>\r\n"));
 	plen=fill_tcp_data_p(buf,plen,("</html>\r\n"));	
 	
-	return(plen);
+	return plen;
 }
 
 void protocol_init(void){
@@ -157,23 +165,19 @@ void server_loop(void){
 		}
 
 		//Process TCP packet with port 80
-		if (buf[IP_PROTO_P]==IP_PROTO_TCP_V&&buf[TCP_DST_PORT_H_P]==0&&buf[TCP_DST_PORT_L_P]==HTTP_PORT){
+		if (buf[IP_PROTO_P]==IP_PROTO_TCP_V&&buf[TCP_DST_PORT_H_P]==0&&buf[TCP_DST_PORT_L_P]==HTTP_PORT) {
 			printf("XMC1 Rcvd TCP[80] pkt\n");
-			if (buf[TCP_FLAGS_P] & TCP_FLAGS_SYN_V)
-			{
+			if (buf[TCP_FLAGS_P] & TCP_FLAGS_SYN_V) {
 				printf("Type SYN\n");
 				make_tcp_synack_from_syn(buf);
 				continue;
 			}
-			if (buf[TCP_FLAGS_P] & TCP_FLAGS_ACK_V)
-			{
+			if (buf[TCP_FLAGS_P] & TCP_FLAGS_ACK_V) {
 				printf("Type ACK\n");
 				init_len_info(buf); // init some data structures
 				dat_p=get_tcp_data_pointer();
-				if (dat_p==0)
-				{
-					if (buf[TCP_FLAGS_P] & TCP_FLAGS_FIN_V)
-					{
+				if (dat_p==0) {
+					if (buf[TCP_FLAGS_P] & TCP_FLAGS_FIN_V) {
 						make_tcp_ack_from_any(buf);
 					}
 					continue;
@@ -184,29 +188,31 @@ void server_loop(void){
 					goto SENDTCP;
 				}
 					//Process HTTP Request
-				if (strncmp("/ ",(char *)&(buf[dat_p+4]),2)==0){
-					
+				if (strncmp("/ ",(char *)&(buf[dat_p+4]),2)==0) {
 					//Update Web Page Content
-					plen=print_webpage(buf, g_led_state);
+					plen=print_webpage(buf);
 
 					goto SENDTCP;
 				}
 				
 				//Analysis the command in the URL
 				cmd=analyse_get_url((char *)&(buf[dat_p+5]));
-				if (cmd==-1){
+				if (cmd < 0) {
+					printf("*");
 					plen=fill_tcp_data_p(buf,0,("HTTP/1.0 401 Unauthorized\r\nContent-Type: text/html\r\n\r\n<h1>401 Unauthorized</h1>"));
 					goto SENDTCP;
 				}
 				if (cmd==1)	{
-					LD2_ON();
-					g_led_state=1;
+					if(LED_ON_STAT != LD_05_Stat()) {
+						LD_05_ON();
+					}
+				} else if (cmd==0) {
+					if(LED_OFF_STAT != LD_05_Stat()) {
+						LD_05_OFF();
+					}
 				}
-
-				if (cmd==0){
-					LD2_OFF();
-					g_led_state=0;
-				}
+				//Update Web Page Content
+				plen=print_webpage(buf);
 
 				SENDTCP:
 				// send ack for http get

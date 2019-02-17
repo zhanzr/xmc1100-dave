@@ -17,7 +17,6 @@
 #define ETH_DST_MAC 0
 #define ETH_SRC_MAC 6
 
-
 // ******* ARP *******
 #define ETH_ARP_OPCODE_REPLY_H_V 0x0
 #define ETH_ARP_OPCODE_REPLY_L_V 0x02

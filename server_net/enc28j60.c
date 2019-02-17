@@ -17,35 +17,34 @@ static uint32_t NextPacketPtr;
 extern void HAL_Delay(uint32_t d);
 
 #if(0 != SOFT_SPI)
-	#warning use soft spi
-
+#warning use soft spi
 
 void SCLK_H(void){
-		XMC_GPIO_SetOutputHigh(XMC_GPIO_PORT0, 8);
+	XMC_GPIO_SetOutputHigh(XMC_GPIO_PORT0, 8);
 }
 
 void SCLK_L(void){
-		XMC_GPIO_SetOutputLow(XMC_GPIO_PORT0, 8);
+	XMC_GPIO_SetOutputLow(XMC_GPIO_PORT0, 8);
 }
 
 void MOSI_H(void){
-		XMC_GPIO_SetOutputHigh(XMC_GPIO_PORT1, 0);
+	XMC_GPIO_SetOutputHigh(XMC_GPIO_PORT1, 0);
 }
 
 void MOSI_L(void){
-		XMC_GPIO_SetOutputLow(XMC_GPIO_PORT1, 0);
+	XMC_GPIO_SetOutputLow(XMC_GPIO_PORT1, 0);
 }
 
 uint32_t MISO_STAT(void){
-		return XMC_GPIO_GetInput(XMC_GPIO_PORT1, 1);
+	return XMC_GPIO_GetInput(XMC_GPIO_PORT1, 1);
 }
 
 void ENC28J60_CSH(void){
-		XMC_GPIO_SetOutputHigh(XMC_GPIO_PORT0, 9);
+	XMC_GPIO_SetOutputHigh(XMC_GPIO_PORT0, 9);
 }
 
 void ENC28J60_CSL(void){
-		XMC_GPIO_SetOutputLow(XMC_GPIO_PORT0, 9);
+	XMC_GPIO_SetOutputLow(XMC_GPIO_PORT0, 9);
 }
 
 #define	BIT_DELAY	1
@@ -90,7 +89,7 @@ void spi_read(uint8_t* p_buf, uint16_t len){
 	uint8_t dummy = 0xff;
 
 	for(uint16_t n=0; n<len; ++n){
-			spi_xfer(&dummy, p_buf+n);
+		spi_xfer(&dummy, p_buf+n);
 	}
 	return;
 }
@@ -106,7 +105,7 @@ void spi_init(void){
 
 	//MISO -> P1.1
 	XMC_GPIO_SetMode(XMC_GPIO_PORT1, 1, XMC_GPIO_MODE_INPUT_TRISTATE);
-//	XMC_GPIO_SetMode(XMC_GPIO_PORT1, 1, XMC_GPIO_MODE_OUTPUT_PUSH_PULL);
+	//	XMC_GPIO_SetMode(XMC_GPIO_PORT1, 1, XMC_GPIO_MODE_OUTPUT_PUSH_PULL);
 
 	ENC28J60_CSH();
 	SCLK_L();
@@ -123,7 +122,7 @@ void ENC28J60_CSH(void){
 }
 
 void spi_write(uint8_t raw){
-		/*Sending a byte*/
+	/*Sending a byte*/
 	XMC_SPI_CH_Transmit(XMC_SPI0_CH0, raw, XMC_SPI_CH_MODE_STANDARD);
 	//uint16_t XMC_SPI_CH_GetReceivedData(XMC_USIC_CH_t *const channel);
 	/*Wait till the byte has been transmitted*/
@@ -136,10 +135,10 @@ uint8_t spi_read(uint8_t dummy){
 	/*Wait till the byte has been transmitted*/
 	while((XMC_SPI_CH_GetStatusFlag(XMC_SPI0_CH0) & XMC_SPI_CH_STATUS_FLAG_TRANSMIT_SHIFT_INDICATION) == 0U);
 	XMC_SPI_CH_ClearStatusFlag(XMC_SPI0_CH0, XMC_SPI_CH_STATUS_FLAG_TRANSMIT_SHIFT_INDICATION);
-//	while((XMC_SPI_CH_GetStatusFlag(XMC_SPI0_CH0) & XMC_SPI_CH_STATUS_FLAG_ALTERNATIVE_RECEIVE_INDICATION) == 0U);
-//	XMC_SPI_CH_ClearStatusFlag(XMC_SPI0_CH0, XMC_SPI_CH_STATUS_FLAG_ALTERNATIVE_RECEIVE_INDICATION);
-//	while((XMC_SPI_CH_GetStatusFlag(XMC_SPI0_CH0) & XMC_SPI_CH_STATUS_FLAG_RECEIVE_INDICATION) == 0U);
-//	XMC_SPI_CH_ClearStatusFlag(XMC_SPI0_CH0, XMC_SPI_CH_STATUS_FLAG_RECEIVE_INDICATION);
+	//	while((XMC_SPI_CH_GetStatusFlag(XMC_SPI0_CH0) & XMC_SPI_CH_STATUS_FLAG_ALTERNATIVE_RECEIVE_INDICATION) == 0U);
+	//	XMC_SPI_CH_ClearStatusFlag(XMC_SPI0_CH0, XMC_SPI_CH_STATUS_FLAG_ALTERNATIVE_RECEIVE_INDICATION);
+	//	while((XMC_SPI_CH_GetStatusFlag(XMC_SPI0_CH0) & XMC_SPI_CH_STATUS_FLAG_RECEIVE_INDICATION) == 0U);
+	//	XMC_SPI_CH_ClearStatusFlag(XMC_SPI0_CH0, XMC_SPI_CH_STATUS_FLAG_RECEIVE_INDICATION);
 
 	uint16_t ret16 = XMC_SPI_CH_GetReceivedData(XMC_SPI0_CH0);
 	if(ret16 != (ret16&0x00ff)){
@@ -155,53 +154,53 @@ XMC_GPIO_CONFIG_t clk_pin_config;
 
 /**
  * @brief SPI configuration structure
-*/
+ */
 XMC_SPI_CH_CONFIG_t spi_config =
 {
-  .baudrate = 5000,
-  .bus_mode = XMC_SPI_CH_BUS_MODE_MASTER,
-  .selo_inversion = XMC_SPI_CH_SLAVE_SEL_INV_TO_MSLS,
-  .parity_mode = XMC_USIC_CH_PARITY_MODE_NONE
+		.baudrate = 5000,
+		.bus_mode = XMC_SPI_CH_BUS_MODE_MASTER,
+		.selo_inversion = XMC_SPI_CH_SLAVE_SEL_INV_TO_MSLS,
+		.parity_mode = XMC_USIC_CH_PARITY_MODE_NONE
 };
 
 void spi_init(void){
-//	//CS -> P0.9
-//	XMC_GPIO_SetMode(XMC_GPIO_PORT0, 9, XMC_GPIO_MODE_OUTPUT_PUSH_PULL);
-//	//SCLK -> P0.8
-//	XMC_GPIO_SetMode(XMC_GPIO_PORT0, 8, XMC_GPIO_MODE_OUTPUT_PUSH_PULL);
-//
-//	//MOSI -> P1.0
-//	XMC_GPIO_SetMode(XMC_GPIO_PORT1, 0, XMC_GPIO_MODE_OUTPUT_PUSH_PULL);
+	//	//CS -> P0.9
+	//	XMC_GPIO_SetMode(XMC_GPIO_PORT0, 9, XMC_GPIO_MODE_OUTPUT_PUSH_PULL);
+	//	//SCLK -> P0.8
+	//	XMC_GPIO_SetMode(XMC_GPIO_PORT0, 8, XMC_GPIO_MODE_OUTPUT_PUSH_PULL);
+	//
+	//	//MOSI -> P1.0
+	//	XMC_GPIO_SetMode(XMC_GPIO_PORT1, 0, XMC_GPIO_MODE_OUTPUT_PUSH_PULL);
 
-//	//MISO -> P1.1
-////	XMC_GPIO_SetMode(XMC_GPIO_PORT1, 1, XMC_GPIO_MODE_INPUT_TRISTATE);
-//	XMC_GPIO_SetMode(XMC_GPIO_PORT1, 1, XMC_GPIO_MODE_OUTPUT_PUSH_PULL);
+	//	//MISO -> P1.1
+	////	XMC_GPIO_SetMode(XMC_GPIO_PORT1, 1, XMC_GPIO_MODE_INPUT_TRISTATE);
+	//	XMC_GPIO_SetMode(XMC_GPIO_PORT1, 1, XMC_GPIO_MODE_OUTPUT_PUSH_PULL);
 
-  /* Initialize and Start SPI */
-  XMC_SPI_CH_Init(XMC_SPI0_CH0, &spi_config);
-  XMC_SPI_CH_SetInputSource(XMC_SPI0_CH0, XMC_SPI_CH_INPUT_DIN0, USIC0_C0_DX0_P1_1);
+	/* Initialize and Start SPI */
+	XMC_SPI_CH_Init(XMC_SPI0_CH0, &spi_config);
+	XMC_SPI_CH_SetInputSource(XMC_SPI0_CH0, XMC_SPI_CH_INPUT_DIN0, USIC0_C0_DX0_P1_1);
 	XMC_SPI_CH_SetBitOrderMsbFirst(XMC_SPI0_CH0);
 	XMC_SPI_CH_SetSlaveSelectDelay(XMC_SPI0_CH0, 1);
 	XMC_SPI_CH_EnableInterwordDelay(XMC_SPI0_CH0);
 	XMC_SPI_CH_SetInterwordDelaySCLK(XMC_SPI0_CH0, 1);
 
-  /* GPIO Input pin configuration */
-  rx_pin_config.mode = XMC_GPIO_MODE_INPUT_TRISTATE;
-  XMC_GPIO_Init(XMC_GPIO_PORT1,1, &rx_pin_config);
+	/* GPIO Input pin configuration */
+	rx_pin_config.mode = XMC_GPIO_MODE_INPUT_TRISTATE;
+	XMC_GPIO_Init(XMC_GPIO_PORT1,1, &rx_pin_config);
 
-  /* GPIO Output pin configuration */
-  tx_pin_config.mode = XMC_GPIO_MODE_OUTPUT_PUSH_PULL_ALT7;
-  XMC_GPIO_Init(XMC_GPIO_PORT1,0, &tx_pin_config);
+	/* GPIO Output pin configuration */
+	tx_pin_config.mode = XMC_GPIO_MODE_OUTPUT_PUSH_PULL_ALT7;
+	XMC_GPIO_Init(XMC_GPIO_PORT1,0, &tx_pin_config);
 
-  /* GPIO Slave Select line pin configuration */
-  selo_pin_config.mode = XMC_GPIO_MODE_OUTPUT_PUSH_PULL_ALT6;
-  XMC_GPIO_Init(XMC_GPIO_PORT0,9, &selo_pin_config);
+	/* GPIO Slave Select line pin configuration */
+	selo_pin_config.mode = XMC_GPIO_MODE_OUTPUT_PUSH_PULL_ALT6;
+	XMC_GPIO_Init(XMC_GPIO_PORT0,9, &selo_pin_config);
 
-  /* GPIO Clock pin configuration */
-  clk_pin_config.mode = XMC_GPIO_MODE_OUTPUT_PUSH_PULL_ALT6;
-  XMC_GPIO_Init(XMC_GPIO_PORT0,8, &clk_pin_config);
+	/* GPIO Clock pin configuration */
+	clk_pin_config.mode = XMC_GPIO_MODE_OUTPUT_PUSH_PULL_ALT6;
+	XMC_GPIO_Init(XMC_GPIO_PORT0,8, &clk_pin_config);
 
-  XMC_SPI_CH_Start(XMC_SPI0_CH0);
+	XMC_SPI_CH_Start(XMC_SPI0_CH0);
 }
 
 #endif	//#if(0 != SOFT_SPI)
@@ -317,7 +316,7 @@ uint16_t enc28j60_phy_read(uint8_t address){
 	enc28j60Write(MICMD, 0x00);
 
 	uint16_t dat16 = enc28j60Read(MIRDH);
-  uint8_t dat8 = enc28j60Read(MIRDL);
+	uint8_t dat8 = enc28j60Read(MIRDL);
 	return (dat16<<8)|dat8;
 }
 
