@@ -150,7 +150,7 @@ SECTIONS
         . = . + stack_size;
         __initial_sp = .;
     } > SRAM
-
+  
      /* Standard DATA and user defined DATA/BSS/CONST sections */
     DataLoadAddr = eROData + VeneerSize;
     .data : AT(DataLoadAddr)

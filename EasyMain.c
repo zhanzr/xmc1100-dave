@@ -139,6 +139,8 @@ extern void interface_init(void);
 extern void protocol_init(void);
 extern void server_loop(void);
 
+volatile uint32_t g_sp_vals[3];
+
 int main(void){
 	__IO uint32_t tmpTick;
 	__IO int32_t tmpK;
@@ -168,7 +170,7 @@ int main(void){
 	XMC_GPIO_Init(UART_TX, &uart_tx);
 	XMC_GPIO_Init(UART_RX, &uart_rx);
 
-	spi_init();
+//	spi_init();
 
 	// LEDs configuration (P1.2 and P1.3 are used for serial comm)
 	P0_5_set_mode(OUTPUT_OD_GP);
@@ -190,16 +192,15 @@ int main(void){
 
 	printf("Test %u MHz %s\n", SystemCoreClock / 1000000, __TIME__);
 
-	interface_init();
-	protocol_init();
-
-	printf("MAC Rev: 0x%02X\n", enc28j60getrev());
-
-	server_loop();
+//	interface_init();
+//	protocol_init();
+//
+//	printf("MAC Rev: 0x%02X\n", enc28j60getrev());
+//
+//	server_loop();
 
 	while(1){
 		HAL_Delay(2000);
-		printf("MAC Rev: 0x%02X\n", enc28j60getrev());
 		P0_5_toggle();
 		//		P0_6_toggle();
 		//		P1_4_toggle();
@@ -277,12 +278,17 @@ int main(void){
 //		printf("ASM Test 27 Result:%08X\t[%08X]\n", asm_rev16(0x123456C8), __REV16(0x123456C8));
 //		printf("ASM Test 28 Result:%08X\t[%08X]\n", asm_revsh(0x123456C8), __REVSH(0x123456C8));
 //
-//		//Part 8: Test SVC, MSR, MRS
-//		printf("Part 8\n");
-//		printf("ASM Test 29, Before SVC\n");
-//		//__ASM volatile ("svc 1" : : : "memory");
-//		//		asm_svc_1(1000);
-//		printf("After SVC\n");
+		//Part 8: Test SVC, MSR, MRS
+		printf("Part 8\n");
+		printf("ASM Test 29, Before SVC\n");
+		g_sp_vals[0]=__get_MSP();
+		//destroy the 8 byte alignment
+		__ASM volatile ("MSR msp, %0\n" : : "r" (g_sp_vals[0]-4) : "sp");
+		__ASM volatile ("svc 1" : : : "memory");
+		g_sp_vals[2]=__get_MSP();
+		printf("sp vals.%08X %08X %08X\n\n", g_sp_vals[0], g_sp_vals[1], g_sp_vals[2]);
+		//		asm_svc_1(1000);
+		printf("After SVC\n");
 //
 //		printf("ASM Test 30 Result:%08X\n", asm_test_mrs());
 //		printf("ASM Test 31 Tick:%u\n", SysTick->VAL);
