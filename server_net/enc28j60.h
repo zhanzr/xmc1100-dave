@@ -240,8 +240,10 @@
 // (note: maximum ethernet frame length would be 1518)
 #define        MAX_FRAMELEN        1500        
 
-#define ENC28J60_CSH()	XMC_SPI_CH_DisableSlaveSelect(XMC_SPI0_CH0)
-#define ENC28J60_CSL()	XMC_SPI_CH_EnableSlaveSelect(XMC_SPI0_CH0, XMC_SPI_CH_SLAVE_SELECT_0)
+//#define SOFT_SPI	0
+#define SOFT_SPI	1
+
+void spi_init(void);
 
 void enc28j60Init(const uint8_t* macaddr);
 uint8_t enc28j60getrev(void);

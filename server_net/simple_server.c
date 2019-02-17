@@ -6,6 +6,7 @@
 #include <assert.h>
 
 #include <XMC1100.h>
+#include <xmc_spi.h>
 
 #include "enc28j60.h"
 #include "ip_arp_udp_tcp.h"
@@ -25,6 +26,8 @@ static uint8_t buf[BUFFER_SIZE+1];
 
 static uint8_t g_led_state;
 
+int32_t g_tmpK;
+
 // takes a string of the form password/commandNumber and analyse it
 // return values: -1 invalid password, otherwise command number
 //                -2 no command given but password valid
@@ -33,20 +36,17 @@ signed char analyse_get_url(char *str){
 
 	// find first "/"
 	// passw not longer than 9 char:
-	while(*str && i<10 && *str >',' && *str<'{')
-	{
-		if (*str=='/')
-		{
+	while(*str && i<10 && *str >',' && *str<'{'){
+		if (*str=='/'){
 			str++;
 			break;
 		}
 		i++;
 		str++;
 	}
-	if (*str < 0x3a && *str > 0x2f)
-	{
+	if (*str < 0x3a && *str > 0x2f){
 		// is a ASCII number, return it
-		return(*str-0x30);
+		return(*str-'0');
 	}
 	return(-2);
 }
@@ -67,14 +67,15 @@ uint32_t print_webpage(uint8_t *buf,uint8_t on_off)
 	plen=fill_tcp_data_p(buf,plen,("<body>\r\n"));
 	plen=fill_tcp_data_p(buf,plen,("<center>\r\n"));
 	
-	plen=fill_tcp_data_p(buf,plen,("<p>Tempeature and IntRef: "));
-//	sprintf((char*)tmp_compose_buf, "%u %u mV\r\n", g_adc_buf[0], (g_adc_buf[1]*VDD_VALUE)/4095);
-//	plen=fill_tcp_data(buf,plen,(const char*)tmp_compose_buf);
+	plen=fill_tcp_data_p(buf,plen,("<p>Tempeature: "));
+	sprintf((char*)tmp_compose_buf, "%i 'C\r\n", g_tmpK);
+	plen=fill_tcp_data(buf,plen,(const char*)tmp_compose_buf);
 	plen=fill_tcp_data_p(buf,plen,("<p>Provided by Cortex M board\r\n"));
 
-	sprintf((char*)tmp_compose_buf, "<p>system Ticks:%u LED State:%u\r\n",					
+	sprintf((char*)tmp_compose_buf, "<p>system Ticks:%u LED State:%u, soft_spi:%u\r\n",
 	SysTick->VAL,
-	g_led_state);
+	g_led_state,
+	SOFT_SPI);
 	plen=fill_tcp_data(buf,plen,(const char*)tmp_compose_buf);		
 	
 	sprintf((char*)tmp_compose_buf, "<p>MAC Rev: 0x%02X\r\n", enc28j60getrev());
@@ -100,7 +101,7 @@ uint32_t print_webpage(uint8_t *buf,uint8_t on_off)
 		plen=fill_tcp_data_p(buf,plen,("1\">LED On</a><p>"));
 	}
 
-	plen=fill_tcp_data_p(buf,plen,("<hr><p>F767 Board Simple Server\r\n"));
+	plen=fill_tcp_data_p(buf,plen,("<hr><p>XMC1 Board Simple Server\r\n"));
 
 	plen=fill_tcp_data_p(buf,plen,("</center>\r\n"));
 	plen=fill_tcp_data_p(buf,plen,("</body>\r\n"));
@@ -118,14 +119,16 @@ void server_loop(void){
 	char *buf1 = 0;
 	signed char cmd;
 
-	//printf("MAC:%02X,%02X,%02X,%02X,%02X,%02X\n",
-//	g_mac_addr[0],g_mac_addr[1],g_mac_addr[2],g_mac_addr[3],g_mac_addr[4],g_mac_addr[5]);
-	//printf("IP:%d.%d.%d.%d\n",
-//	g_ip_addr[0],g_ip_addr[1],g_ip_addr[2],g_ip_addr[3]);
-	//printf("Port:%d\n",HTTP_PORT);
+	printf("MAC:%02X,%02X,%02X,%02X,%02X,%02X\n",
+	g_mac_addr[0],g_mac_addr[1],g_mac_addr[2],g_mac_addr[3],g_mac_addr[4],g_mac_addr[5]);
+	printf("IP:%d.%d.%d.%d\n",
+	g_ip_addr[0],g_ip_addr[1],g_ip_addr[2],g_ip_addr[3]);
+	printf("Port:%d\n",HTTP_PORT);
 
 	//init the ethernet/ip layer:
 	while(true){
+		g_tmpK = XMC1000_CalcTemperature()-273;
+
 		plen = enc28j60PacketReceive(BUFFER_SIZE, buf);
 
 		if(plen==0){
@@ -140,31 +143,31 @@ void server_loop(void){
 
 		//Only Process IP Packet destinated at me
 		if(eth_type_is_ip_and_my_ip(buf,plen)==0) {
-			//printf("$");
+			printf("$");
 			continue;
 		}
 		
 		//Process ICMP packet
 		if(buf[IP_PROTO_P]==IP_PROTO_ICMP_V && buf[ICMP_TYPE_P]==ICMP_TYPE_ECHOREQUEST_V){
 
-			//printf("Rcvd ICMP from [%d.%d.%d.%d]",buf[ETH_ARP_SRC_IP_P],buf[ETH_ARP_SRC_IP_P+1],
-//					buf[ETH_ARP_SRC_IP_P+2],buf[ETH_ARP_SRC_IP_P+3]);
+			printf("Rcvd ICMP from [%d.%d.%d.%d]\n",buf[ETH_ARP_SRC_IP_P],buf[ETH_ARP_SRC_IP_P+1],
+					buf[ETH_ARP_SRC_IP_P+2],buf[ETH_ARP_SRC_IP_P+3]);
 			make_echo_reply_from_request(buf, plen);
 			continue;
 		}
 
 		//Process TCP packet with port 80
 		if (buf[IP_PROTO_P]==IP_PROTO_TCP_V&&buf[TCP_DST_PORT_H_P]==0&&buf[TCP_DST_PORT_L_P]==HTTP_PORT){
-			//printf("\n\rF767 Rcvd TCP[80] packet");
+			printf("XMC1 Rcvd TCP[80] pkt\n");
 			if (buf[TCP_FLAGS_P] & TCP_FLAGS_SYN_V)
 			{
-				//printf("Type SYN");
+				printf("Type SYN\n");
 				make_tcp_synack_from_syn(buf);
 				continue;
 			}
 			if (buf[TCP_FLAGS_P] & TCP_FLAGS_ACK_V)
 			{
-				//printf("Type ACK");
+				printf("Type ACK\n");
 				init_len_info(buf); // init some data structures
 				dat_p=get_tcp_data_pointer();
 				if (dat_p==0)
@@ -177,7 +180,7 @@ void server_loop(void){
 				}
 					// Process Telnet request
 				if (strncmp("GET ",(char *)&(buf[dat_p]),4)!=0){
-					plen=fill_tcp_data_p(buf,0,("F767\r\n\n\rHTTP/1.0 200 OK\r\nContent-Type: text/html\r\n\r\n<h1>200 OK</h1>"));
+					plen=fill_tcp_data_p(buf,0,("XMC1\r\n\n\rHTTP/1.0 200 OK\r\nContent-Type: text/html\r\n\r\n<h1>200 OK</h1>"));
 					goto SENDTCP;
 				}
 					//Process HTTP Request

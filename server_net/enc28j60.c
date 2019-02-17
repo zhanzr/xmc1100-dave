@@ -7,41 +7,204 @@
 
 #include <xmc1100.h>
 #include <xmc_spi.h>
+#include <xmc_gpio.h>
 
 #include "enc28j60.h"
 
-static uint8_t Enc28j60Bank;
+static uint8_t g_current_enc_bank;
 static uint32_t NextPacketPtr;
 
 extern void HAL_Delay(uint32_t d);
 
-void spi_write_byte(uint8_t* pbuf, uint32_t len){
-	ENC28J60_CSL();
+#if(0 != SOFT_SPI)
+	#warning use soft spi
 
-	for(uint32_t i=0; i<len; ++i){
+
+void SCLK_H(void){
+		XMC_GPIO_SetOutputHigh(XMC_GPIO_PORT0, 8);
+}
+
+void SCLK_L(void){
+		XMC_GPIO_SetOutputLow(XMC_GPIO_PORT0, 8);
+}
+
+void MOSI_H(void){
+		XMC_GPIO_SetOutputHigh(XMC_GPIO_PORT1, 0);
+}
+
+void MOSI_L(void){
+		XMC_GPIO_SetOutputLow(XMC_GPIO_PORT1, 0);
+}
+
+uint32_t MISO_STAT(void){
+		return XMC_GPIO_GetInput(XMC_GPIO_PORT1, 1);
+}
+
+void ENC28J60_CSH(void){
+		XMC_GPIO_SetOutputHigh(XMC_GPIO_PORT0, 9);
+}
+
+void ENC28J60_CSL(void){
+		XMC_GPIO_SetOutputLow(XMC_GPIO_PORT0, 9);
+}
+
+#define	BIT_DELAY	1
+static inline void bit_delay(uint32_t d){
+	for(uint32_t i=0; i<d; ++i){
+		__NOP();
+	}
+}
+
+static inline void spi_xfer(uint8_t *dout, uint8_t *din){
+	uint8_t tmpdin  = 0;
+	uint8_t tmpdout = *dout;
+
+	for(uint8_t j = 0; j < 8; j++) {
+		SCLK_L();
+		(tmpdout & 0x80)?MOSI_H():MOSI_L();
+		bit_delay(BIT_DELAY);
+		SCLK_H();
+		bit_delay(BIT_DELAY);
+		tmpdin  <<= 1;
+		tmpdin   |= MISO_STAT();
+		tmpdout <<= 1;
+	}
+
+	*din = tmpdin;
+
+	//SPI wants the clock left low for idle
+	SCLK_L();
+
+	return;
+}
+
+void spi_write(uint8_t* p_raw, uint16_t len){
+	uint8_t dummy;
+	for(uint16_t n=0; n<len; ++n){
+		spi_xfer(p_raw+n, &dummy);
+	}
+	return;
+}
+
+void spi_read(uint8_t* p_buf, uint16_t len){
+	uint8_t dummy = 0xff;
+
+	for(uint16_t n=0; n<len; ++n){
+			spi_xfer(&dummy, p_buf+n);
+	}
+	return;
+}
+
+void spi_init(void){
+	//CS -> P0.9
+	XMC_GPIO_SetMode(XMC_GPIO_PORT0, 9, XMC_GPIO_MODE_OUTPUT_PUSH_PULL);
+	//SCLK -> P0.8
+	XMC_GPIO_SetMode(XMC_GPIO_PORT0, 8, XMC_GPIO_MODE_OUTPUT_PUSH_PULL);
+
+	//MOSI -> P1.0
+	XMC_GPIO_SetMode(XMC_GPIO_PORT1, 0, XMC_GPIO_MODE_OUTPUT_PUSH_PULL);
+
+	//MISO -> P1.1
+	XMC_GPIO_SetMode(XMC_GPIO_PORT1, 1, XMC_GPIO_MODE_INPUT_TRISTATE);
+//	XMC_GPIO_SetMode(XMC_GPIO_PORT1, 1, XMC_GPIO_MODE_OUTPUT_PUSH_PULL);
+
+	ENC28J60_CSH();
+	SCLK_L();
+	MOSI_H();
+}
+
+#else
+void ENC28J60_CSL(void){
+	XMC_SPI_CH_EnableSlaveSelect(XMC_SPI0_CH0, XMC_SPI_CH_SLAVE_SELECT_0);
+}
+
+void ENC28J60_CSH(void){
+	XMC_SPI_CH_DisableSlaveSelect(XMC_SPI0_CH0);
+}
+
+void spi_write(uint8_t raw){
 		/*Sending a byte*/
-		XMC_SPI_CH_Transmit(XMC_SPI0_CH0, *(pbuf+i), XMC_SPI_CH_MODE_STANDARD);
-		/*Wait till the byte has been transmitted*/
-		while((XMC_SPI_CH_GetStatusFlag(XMC_SPI0_CH0) & XMC_SPI_CH_STATUS_FLAG_TRANSMIT_SHIFT_INDICATION) == 0U);
-		XMC_SPI_CH_ClearStatusFlag(XMC_SPI0_CH0, XMC_SPI_CH_STATUS_FLAG_TRANSMIT_SHIFT_INDICATION);
-	}
-
-	ENC28J60_CSH();
+	XMC_SPI_CH_Transmit(XMC_SPI0_CH0, raw, XMC_SPI_CH_MODE_STANDARD);
+	//uint16_t XMC_SPI_CH_GetReceivedData(XMC_USIC_CH_t *const channel);
+	/*Wait till the byte has been transmitted*/
+	while((XMC_SPI_CH_GetStatusFlag(XMC_SPI0_CH0) & XMC_SPI_CH_STATUS_FLAG_TRANSMIT_SHIFT_INDICATION) == 0U);
+	XMC_SPI_CH_ClearStatusFlag(XMC_SPI0_CH0, XMC_SPI_CH_STATUS_FLAG_TRANSMIT_SHIFT_INDICATION);
 }
 
-void spi_read_byte(uint8_t* pbuf, uint32_t len){
-	ENC28J60_CSL();
+uint8_t spi_read(uint8_t dummy){
+	XMC_SPI_CH_Receive(XMC_SPI0_CH0, XMC_SPI_CH_MODE_STANDARD);
+	/*Wait till the byte has been transmitted*/
+	while((XMC_SPI_CH_GetStatusFlag(XMC_SPI0_CH0) & XMC_SPI_CH_STATUS_FLAG_TRANSMIT_SHIFT_INDICATION) == 0U);
+	XMC_SPI_CH_ClearStatusFlag(XMC_SPI0_CH0, XMC_SPI_CH_STATUS_FLAG_TRANSMIT_SHIFT_INDICATION);
+//	while((XMC_SPI_CH_GetStatusFlag(XMC_SPI0_CH0) & XMC_SPI_CH_STATUS_FLAG_ALTERNATIVE_RECEIVE_INDICATION) == 0U);
+//	XMC_SPI_CH_ClearStatusFlag(XMC_SPI0_CH0, XMC_SPI_CH_STATUS_FLAG_ALTERNATIVE_RECEIVE_INDICATION);
+//	while((XMC_SPI_CH_GetStatusFlag(XMC_SPI0_CH0) & XMC_SPI_CH_STATUS_FLAG_RECEIVE_INDICATION) == 0U);
+//	XMC_SPI_CH_ClearStatusFlag(XMC_SPI0_CH0, XMC_SPI_CH_STATUS_FLAG_RECEIVE_INDICATION);
 
-	for(uint32_t i=0; i<len; ++i){
-		/*Rcving a byte*/
-		*(pbuf+i) = (uint8_t)XMC_SPI_CH_GetReceivedData(XMC_SPI0_CH0);
-//		/*Wait till the byte has been rcving*/
-//		while((XMC_SPI_CH_GetStatusFlag(XMC_SPI0_CH0) & XMC_SPI_CH_STATUS_FLAG_RECEIVE_INDICATION) == 0U);
-		XMC_SPI_CH_ClearStatusFlag(XMC_SPI0_CH0, XMC_SPI_CH_STATUS_FLAG_RECEIVE_INDICATION);
+	uint16_t ret16 = XMC_SPI_CH_GetReceivedData(XMC_SPI0_CH0);
+	if(ret16 != (ret16&0x00ff)){
+		printf("%04X ", ret16);
 	}
-
-	ENC28J60_CSH();
+	return (uint8_t)ret16;
 }
+
+XMC_GPIO_CONFIG_t rx_pin_config;
+XMC_GPIO_CONFIG_t tx_pin_config;
+XMC_GPIO_CONFIG_t selo_pin_config;
+XMC_GPIO_CONFIG_t clk_pin_config;
+
+/**
+ * @brief SPI configuration structure
+*/
+XMC_SPI_CH_CONFIG_t spi_config =
+{
+  .baudrate = 5000,
+  .bus_mode = XMC_SPI_CH_BUS_MODE_MASTER,
+  .selo_inversion = XMC_SPI_CH_SLAVE_SEL_INV_TO_MSLS,
+  .parity_mode = XMC_USIC_CH_PARITY_MODE_NONE
+};
+
+void spi_init(void){
+//	//CS -> P0.9
+//	XMC_GPIO_SetMode(XMC_GPIO_PORT0, 9, XMC_GPIO_MODE_OUTPUT_PUSH_PULL);
+//	//SCLK -> P0.8
+//	XMC_GPIO_SetMode(XMC_GPIO_PORT0, 8, XMC_GPIO_MODE_OUTPUT_PUSH_PULL);
+//
+//	//MOSI -> P1.0
+//	XMC_GPIO_SetMode(XMC_GPIO_PORT1, 0, XMC_GPIO_MODE_OUTPUT_PUSH_PULL);
+
+//	//MISO -> P1.1
+////	XMC_GPIO_SetMode(XMC_GPIO_PORT1, 1, XMC_GPIO_MODE_INPUT_TRISTATE);
+//	XMC_GPIO_SetMode(XMC_GPIO_PORT1, 1, XMC_GPIO_MODE_OUTPUT_PUSH_PULL);
+
+  /* Initialize and Start SPI */
+  XMC_SPI_CH_Init(XMC_SPI0_CH0, &spi_config);
+  XMC_SPI_CH_SetInputSource(XMC_SPI0_CH0, XMC_SPI_CH_INPUT_DIN0, USIC0_C0_DX0_P1_1);
+	XMC_SPI_CH_SetBitOrderMsbFirst(XMC_SPI0_CH0);
+	XMC_SPI_CH_SetSlaveSelectDelay(XMC_SPI0_CH0, 1);
+	XMC_SPI_CH_EnableInterwordDelay(XMC_SPI0_CH0);
+	XMC_SPI_CH_SetInterwordDelaySCLK(XMC_SPI0_CH0, 1);
+
+  /* GPIO Input pin configuration */
+  rx_pin_config.mode = XMC_GPIO_MODE_INPUT_TRISTATE;
+  XMC_GPIO_Init(XMC_GPIO_PORT1,1, &rx_pin_config);
+
+  /* GPIO Output pin configuration */
+  tx_pin_config.mode = XMC_GPIO_MODE_OUTPUT_PUSH_PULL_ALT7;
+  XMC_GPIO_Init(XMC_GPIO_PORT1,0, &tx_pin_config);
+
+  /* GPIO Slave Select line pin configuration */
+  selo_pin_config.mode = XMC_GPIO_MODE_OUTPUT_PUSH_PULL_ALT6;
+  XMC_GPIO_Init(XMC_GPIO_PORT0,9, &selo_pin_config);
+
+  /* GPIO Clock pin configuration */
+  clk_pin_config.mode = XMC_GPIO_MODE_OUTPUT_PUSH_PULL_ALT6;
+  XMC_GPIO_Init(XMC_GPIO_PORT0,8, &clk_pin_config);
+
+  XMC_SPI_CH_Start(XMC_SPI0_CH0);
+}
+
+#endif	//#if(0 != SOFT_SPI)
 
 static uint8_t enc28j60ReadOp(uint8_t op, uint8_t address){
 	uint8_t dat;
@@ -49,15 +212,16 @@ static uint8_t enc28j60ReadOp(uint8_t op, uint8_t address){
 	ENC28J60_CSL();
 
 	dat = op | (address & ADDR_MASK);
+	spi_write(&dat, 1);
 
-	spi_write_byte(&dat, 1);
-	spi_read_byte(&dat, 1);
+	dat = 0xff;
+	spi_read(&dat, 1);
 
-	// do dummy read if needed (for mac and mii, see datasheet page 29)
-	if(address & 0x80){
-		spi_read_byte(&dat, 1);
+	// skip dummy read if needed (for mac and mii, see datasheet page 29)
+	if(address & SPRD_MASK){
+		spi_read(&dat, 1);
 	}
-	// release CS
+
 	ENC28J60_CSH();
 	return dat;
 }
@@ -66,12 +230,13 @@ static void enc28j60WriteOp(uint8_t op, uint8_t address, uint8_t data){
 	uint8_t dat;
 
 	ENC28J60_CSL();
-	// issue write command
+
 	dat = op | (address & ADDR_MASK);
-	spi_write_byte(&dat, 1);
-	// write data
+	spi_write(&dat, 1);
+
 	dat = data;
-	spi_write_byte(&dat, 1);
+	spi_write(&dat, 1);
+
 	ENC28J60_CSH();
 }
 
@@ -79,11 +244,11 @@ static void enc28j60ReadBuffer(uint32_t len, uint8_t* buf){
 	uint8_t dat;
 
 	ENC28J60_CSL();
-	// issue read command
-	dat = ENC28J60_READ_BUF_MEM;
-	spi_write_byte(&dat, 1);
 
-	spi_read_byte(buf, len);
+	dat = ENC28J60_READ_BUF_MEM;
+	spi_write(&dat, 1);
+
+	spi_read(buf, len);
 
 	*(buf+len)=0;
 
@@ -94,22 +259,21 @@ static void enc28j60WriteBuffer(uint32_t len, uint8_t* buf){
 	uint8_t dat;
 
 	ENC28J60_CSL();
-	// issue write command
-	dat = ENC28J60_WRITE_BUF_MEM;
-	spi_write_byte(&dat, 1);
 
-	spi_read_byte(buf, len);
+	dat = ENC28J60_WRITE_BUF_MEM;
+	spi_write(&dat, 1);
+
+	spi_write(buf, len);
 
 	ENC28J60_CSH();
 }
 
 static void enc28j60SetBank(uint8_t address){
 	// set the bank (if needed)
-	if((address & BANK_MASK) != Enc28j60Bank){
-		// set the bank
+	if((address & BANK_MASK) != g_current_enc_bank){
 		enc28j60WriteOp(ENC28J60_BIT_FIELD_CLR, ECON1, (ECON1_BSEL1|ECON1_BSEL0));
 		enc28j60WriteOp(ENC28J60_BIT_FIELD_SET, ECON1, (address & BANK_MASK)>>5);
-		Enc28j60Bank = (address & BANK_MASK);
+		g_current_enc_bank = (address & BANK_MASK);
 	}
 }
 
@@ -139,6 +303,24 @@ static void enc28j60PhyWrite(uint8_t address, uint32_t data){
 	}
 }
 
+uint16_t enc28j60_phy_read(uint8_t address){
+	// Set the right address and start the register read operation
+	enc28j60Write(MIREGADR, address);
+	enc28j60Write(MICMD, MICMD_MIIRD);
+
+	// wait until the PHY read completes
+	while(enc28j60Read(MISTAT) & MISTAT_BUSY){
+		__NOP();
+	}
+
+	// reset reading bit
+	enc28j60Write(MICMD, 0x00);
+
+	uint16_t dat16 = enc28j60Read(MIRDH);
+  uint8_t dat8 = enc28j60Read(MIRDL);
+	return (dat16<<8)|dat8;
+}
+
 static void enc28j60clkout(uint8_t clk){
 	//111 = Reserved for factory test. Do not use. Glitch prevention not assured.
 	//110 = Reserved for factory test. Do not use. Glitch prevention not assured.
@@ -156,7 +338,7 @@ void enc28j60Init(const uint8_t* macaddr){
 
 	//Soft Reset of the MAC
 	enc28j60WriteOp(ENC28J60_SOFT_RESET, 0, ENC28J60_SOFT_RESET);
-	HAL_Delay(200);
+	HAL_Delay(100);
 
 	NextPacketPtr = RXSTART_INIT;
 
@@ -232,6 +414,16 @@ void enc28j60Init(const uint8_t* macaddr){
 	enc28j60PhyWrite(PHLCON,0x0476);	
 
 	enc28j60clkout(2); 
+
+	printf("MAC Rev: 0x%02X\n", enc28j60getrev());
+	printf("MAADR0: %02X\n", enc28j60Read(MAADR0));
+	printf("MAADR1: %02X\n", enc28j60Read(MAADR1));
+	printf("MAADR2: %02X\n", enc28j60Read(MAADR2));
+	printf("MAADR3: %02X\n", enc28j60Read(MAADR3));
+	printf("MAADR4: %02X\n", enc28j60Read(MAADR4));
+	printf("MAADR5: %02X\n", enc28j60Read(MAADR5));
+	printf("PHHID1: %04X\n", enc28j60_phy_read(PHHID1));
+	printf("PHHID2: %04X\n", enc28j60_phy_read(PHHID2));
 }
 
 // read the revision of the chip:

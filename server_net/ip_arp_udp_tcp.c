@@ -10,7 +10,7 @@ static uint32_t info_data_len;
 static uint8_t seqnum=0xa; 
 
 const uint8_t g_ip_addr[4] = {192,168,32,33};
-const uint8_t g_mac_addr[6] = {0x32,0x12,0x35,0x11,0x01,0x51};
+const uint8_t g_mac_addr[6] = {0xB0,0x9A,0x78, 0x56, 0x34,0x12};
 
 void interface_init(void){
 	enc28j60Init(g_mac_addr);	
@@ -100,8 +100,8 @@ uint8_t eth_type_is_arp_and_my_ip(uint8_t *buf,uint32_t len)
 			return(0);
 		}
 	}
-	//printf("Rcvd ARP Request from [%d.%d.%d.%d]",
-//	buf[ETH_ARP_SRC_IP_P],buf[ETH_ARP_SRC_IP_P+1],buf[ETH_ARP_SRC_IP_P+2],buf[ETH_ARP_SRC_IP_P+3]);
+	printf("Rcvd ARP Request from [%d.%d.%d.%d]\n",
+	buf[ETH_ARP_SRC_IP_P],buf[ETH_ARP_SRC_IP_P+1],buf[ETH_ARP_SRC_IP_P+2],buf[ETH_ARP_SRC_IP_P+3]);
 
 	return(1);
 }
@@ -259,7 +259,7 @@ void make_arp_answer_from_request(uint8_t *buf)
 		buf[ETH_ARP_SRC_IP_P+i]=g_ip_addr[i];
 	}
 
-	//printf("\n\rF767[%d.%d.%d.%d]Send ARP Answer",g_ip_addr[0],g_ip_addr[1],g_ip_addr[2],g_ip_addr[3]);
+	printf("XMC1[%d.%d.%d.%d]Send ARP Ans\n",g_ip_addr[0],g_ip_addr[1],g_ip_addr[2],g_ip_addr[3]);
 
 	enc28j60PacketSend(42,buf); 
 }
@@ -277,7 +277,7 @@ void make_echo_reply_from_request(uint8_t *buf,uint32_t len)
 	}
 	buf[ICMP_CHECKSUM_P]+=0x08;
 
-	//printf("\n\rF767[%d.%d.%d.%d]Send ICMP Answer",g_ip_addr[0],g_ip_addr[1],g_ip_addr[2],g_ip_addr[3]);
+	printf("XMC1[%d.%d.%d.%d]Send ICMP Ans\n",g_ip_addr[0],g_ip_addr[1],g_ip_addr[2],g_ip_addr[3]);
 
 	enc28j60PacketSend(len,buf);
 }
@@ -331,7 +331,7 @@ void make_tcp_synack_from_syn(uint8_t *buf){
 	buf[TCP_CHECKSUM_H_P]=ck>>8;
 	buf[TCP_CHECKSUM_L_P]=ck& 0xff;
 	// add 4 for option mss:
-	//printf("\n\rF767[%d.%d.%d.%d]Send SYN Answer",g_ip_addr[0],g_ip_addr[1],g_ip_addr[2],g_ip_addr[3]);
+	printf("XMC1[%d.%d.%d.%d]Send SYN Ans\n",g_ip_addr[0],g_ip_addr[1],g_ip_addr[2],g_ip_addr[3]);
 
 	enc28j60PacketSend(IP_HEADER_LEN+TCP_HEADER_LEN_PLAIN+4+ETH_HEADER_LEN,buf);
 }
@@ -411,8 +411,8 @@ void make_tcp_ack_from_any(uint8_t *buf){
 	buf[TCP_CHECKSUM_H_P]=j>>8;
 	buf[TCP_CHECKSUM_L_P]=j& 0xff;
 
-	//printf("\n\rF767[%d.%d.%d.%d]Send ACK Answer",
-//	g_ip_addr[0],g_ip_addr[1],g_ip_addr[2],g_ip_addr[3]);
+	printf("XMC1[%d.%d.%d.%d]Send ACK Ans\n",
+	g_ip_addr[0],g_ip_addr[1],g_ip_addr[2],g_ip_addr[3]);
 
 	enc28j60PacketSend(IP_HEADER_LEN+TCP_HEADER_LEN_PLAIN+ETH_HEADER_LEN,buf);
 }

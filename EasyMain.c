@@ -109,32 +109,6 @@ XMC_SPI_CH_CONFIG_t spi_config =
 		.parity_mode = XMC_USIC_CH_PARITY_MODE_NONE
 };
 
-void spi_init(void){
-	/* Initialize and Start SPI */
-	XMC_SPI_CH_Init(XMC_SPI0_CH0, &spi_config);
-	XMC_SPI_CH_SetInputSource(XMC_SPI0_CH0, XMC_SPI_CH_INPUT_DIN0, USIC0_C0_DX0_P2_0);
-
-	XMC_SPI_CH_SetFrameLength(XMC_SPI0_CH0, (uint8_t)64);
-
-	XMC_SPI_CH_Start(XMC_SPI0_CH0);
-
-	/* GPIO Input pin configuration */
-	rx_pin_config.mode = XMC_GPIO_MODE_INPUT_TRISTATE;
-	XMC_GPIO_Init(XMC_GPIO_PORT2,0, &rx_pin_config);
-
-	/* GPIO Output pin configuration */
-	tx_pin_config.mode = XMC_GPIO_MODE_OUTPUT_PUSH_PULL_ALT7;
-	XMC_GPIO_Init(XMC_GPIO_PORT1,0, &tx_pin_config);
-
-	/* GPIO Slave Select line pin configuration */
-	selo_pin_config.mode = XMC_GPIO_MODE_OUTPUT_PUSH_PULL_ALT6;
-	XMC_GPIO_Init(XMC_GPIO_PORT0,9, &selo_pin_config);
-
-	/* GPIO Clock pin configuration */
-	clk_pin_config.mode = XMC_GPIO_MODE_OUTPUT_PUSH_PULL_ALT6;
-	XMC_GPIO_Init(XMC_GPIO_PORT0,8, &clk_pin_config);
-}
-
 extern void interface_init(void);
 extern void protocol_init(void);
 extern void server_loop(void);
@@ -170,7 +144,7 @@ int main(void){
 	XMC_GPIO_Init(UART_TX, &uart_tx);
 	XMC_GPIO_Init(UART_RX, &uart_rx);
 
-	//	spi_init();
+	spi_init();
 
 	// LEDs configuration (P1.2 and P1.3 are used for serial comm)
 	P0_5_set_mode(OUTPUT_OD_GP);
@@ -192,12 +166,10 @@ int main(void){
 
 	printf("Test %u MHz %s\n", SystemCoreClock / 1000000, __TIME__);
 
-	//	interface_init();
-	//	protocol_init();
-	//
-	//	printf("MAC Rev: 0x%02X\n", enc28j60getrev());
-	//
-	//	server_loop();
+	interface_init();
+	protocol_init();
+
+	server_loop();
 
 	while(1){
 		HAL_Delay(2000);
