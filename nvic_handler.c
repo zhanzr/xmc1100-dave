@@ -29,21 +29,20 @@ void HardFault_Handler(void){
 	__DMB();
 	delay(1000);
 
-	while(1){
-		;
-	}
+//	while(1){
+//		;
+//	}
 }
 
 void SVC_Handler(void){
-//	printf("%s\n", __func__);
-//	__ISB();
-//	__DSB();
-//	__DMB();
-//	delay(1000);
+	printf("%s\n", __func__);
+	__ISB();
+	__DSB();
+	__DMB();
+	delay(1000);
 
-	__ASM volatile ("MRS %0, msp\n" : "=r" (g_sp_vals[1]) );
 	//Cause a hardfault
-//	__ASM volatile ("svc 0" : : : "memory");
+	__ASM volatile ("svc 0" : : : "memory");
 }
 
 void DebugMon_Handler(void){
