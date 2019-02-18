@@ -114,10 +114,10 @@ __WEAK void SystemCoreClockSetup(void)
   /* Override values of CLOCK_VAL1 and CLOCK_VAL2 defined in vector table */
   /* MCLK = 32MHz, PCLK = 64MHz */
   
-  SCU_GENERAL->PASSWD = 0x000000C0UL; /* disable bit protection */
-  SCU_CLK->CLKCR = 0x3FF10100UL;
-  while((SCU_CLK->CLKCR & SCU_CLK_CLKCR_VDDC2LOW_Msk));
-  SCU_GENERAL->PASSWD = 0x000000C3UL; /* enable bit protection */
+//  SCU_GENERAL->PASSWD = 0x000000C0UL; /* disable bit protection */
+//  SCU_CLK->CLKCR = 0x3FF10100UL;
+//  while((SCU_CLK->CLKCR & SCU_CLK_CLKCR_VDDC2LOW_Msk));
+//  SCU_GENERAL->PASSWD = 0x000000C3UL; /* enable bit protection */
   
   SystemCoreClockUpdate();
 }

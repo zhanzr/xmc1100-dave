@@ -42,7 +42,6 @@
 #include <xmc_flash.h>
 #include <xmc_spi.h>
 
-#include "GPIO.h"
 #include "XMC1000_TSE.h"
 #include "asm_prototype.h"
 
@@ -100,11 +99,11 @@ int main(void){
 
 	__IO uint32_t i = 0;
 	// Clock configuration
-	XMC_SCU_CLOCK_CONFIG_t clock_config = { .rtc_src =
-			XMC_SCU_CLOCK_RTCCLKSRC_DCO2, .pclk_src =
-					XMC_SCU_CLOCK_PCLKSRC_DOUBLE_MCLK, .fdiv = 0, .idiv = 1 };
-	XMC_SCU_CLOCK_Init(&clock_config);
-	SystemCoreClockUpdate();
+//	XMC_SCU_CLOCK_CONFIG_t clock_config = { .rtc_src =
+//			XMC_SCU_CLOCK_RTCCLKSRC_DCO2, .pclk_src =
+//					XMC_SCU_CLOCK_PCLKSRC_DOUBLE_MCLK, .fdiv = 0, .idiv = 1 };
+//	XMC_SCU_CLOCK_Init(&clock_config);
+//	SystemCoreClockUpdate();
 
 	/*Initialize the UART driver */
 	uart_tx.mode = XMC_GPIO_MODE_OUTPUT_PUSH_PULL_ALT7;
@@ -124,16 +123,16 @@ int main(void){
 	spi_init();
 
 	// LEDs configuration (P1.2 and P1.3 are used for serial comm)
-	P0_5_set_mode(OUTPUT_OD_GP);
-	P0_6_set_mode(OUTPUT_OD_GP);
-	P1_4_set_mode(OUTPUT_OD_GP);
-	P1_5_set_mode(OUTPUT_OD_GP);
+	XMC_GPIO_SetMode(XMC_GPIO_PORT0, 5, XMC_GPIO_MODE_OUTPUT_OPEN_DRAIN);
+	XMC_GPIO_SetMode(XMC_GPIO_PORT0, 6, XMC_GPIO_MODE_OUTPUT_OPEN_DRAIN);
+	XMC_GPIO_SetMode(XMC_GPIO_PORT1, 4, XMC_GPIO_MODE_OUTPUT_OPEN_DRAIN);
+	XMC_GPIO_SetMode(XMC_GPIO_PORT1, 5, XMC_GPIO_MODE_OUTPUT_OPEN_DRAIN);
 
 	// Turn OFF all LEDs
-	P0_5_set();
-	P0_6_set();
-	P1_4_set();
-	P1_5_set();
+	XMC_GPIO_SetOutputHigh(XMC_GPIO_PORT0, 5);
+	XMC_GPIO_SetOutputHigh(XMC_GPIO_PORT0, 6);
+	XMC_GPIO_SetOutputHigh(XMC_GPIO_PORT1, 4);
+	XMC_GPIO_SetOutputHigh(XMC_GPIO_PORT1, 5);
 
 	// System Timer initialization
 	SysTick_Config(SystemCoreClock / 1000);
@@ -143,6 +142,13 @@ int main(void){
 
 	printf("Test %u MHz %s\n", SystemCoreClock / 1000000, __TIME__);
 
+	printf("%08X %08X %08X %08X %08X %08X %08X %08X %08X %08X %08X\n",
+			*(uint32_t*)0x10000F00, *(uint32_t*)0x10000F04,
+			*(uint32_t*)0x10000F08, *(uint32_t*)0x10000F0C,
+			*(uint32_t*)0x10000F10, *(uint32_t*)0x10000F04,
+			*(uint32_t*)0x10000F18,
+			SCU_GENERAL->DBGROMID, SCU_GENERAL->IDCHIP, SCU_GENERAL->ID, SCB->CPUID);
+
 	interface_init();
 	protocol_init();
 
@@ -150,11 +156,7 @@ int main(void){
 
 	while(1){
 		HAL_Delay(2000);
-		P0_5_toggle();
-		//		P0_6_toggle();
-		//		P1_4_toggle();
-		//		P1_5_toggle();
-
+		XMC_GPIO_ToggleOutput(XMC_GPIO_PORT0, 6);
 		//		printf("ASM Test 1 Result:%u\n", asm_get_8bit_number());
 		//		printf("ASM Test 2 Result:%08X\t[%08X]\n", asm_get_xor(0x12345678, 0x34567890), 0x12345678^0x34567890);
 		//		printf("ASM Test 3 Direct Jump:%08X\n", TestFunct);

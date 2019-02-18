@@ -9,8 +9,6 @@
 #include <xmc_spi.h>
 #include <xmc_gpio.h>
 
-#include "GPIO.h"
-
 #include "enc28j60.h"
 #include "ip_arp_udp_tcp.h"
 #include "net.h"
@@ -20,10 +18,14 @@ extern volatile uint16_t g_adc_buf[2];
 extern const uint8_t g_ip_addr[4];
 extern const uint8_t g_mac_addr[6];
 
+#if(0 != UDP_TEST_SUPPORT)
 #define TEST_UDP_PORT	((uint16_t)1200)
-#define BUFFER_SIZE 1500
+static uint8_t udp_buf[MAX_FRAMELEN];
+#else
+#warning udp test disabled
+#endif //#if(0 != UDP_TEST_SUPPORT)
 
-static uint8_t buf[BUFFER_SIZE+1];
+static uint8_t net_buf[MAX_FRAMELEN];
 
 int32_t g_tmpK;
 
@@ -56,34 +58,74 @@ int8_t analyse_get_url(char *str) {
 	}
 }
 
-// prepare the webpage by writing the data to the tcp send buffer
-uint32_t print_webpage(uint8_t *buf){
-	uint32_t plen;
-	uint8_t tmp_compose_buf[64];
-			
+extern void VeneerStart(void);
+extern void VeneerEnd(void);
+extern void VeneerSize(void);
+
+extern void __ram_code_start(void);
+extern void __ram_code_end(void);
+extern void __ram_code_size(void);
+extern void stack_size(void);
+extern void __initial_sp(void);
+
+extern void Heap_Bank1_Start(void);
+extern void Heap_Bank1_End(void);
+extern void Heap_Bank1_Size(void);
+
+uint16_t prepare_page(uint8_t *buf) {
+	uint16_t plen;
+	uint8_t tmp_compose_buf[128];
+
 	plen=fill_tcp_data_p(buf,0,("HTTP/1.0 200 OK\r\nContent-Type: text/html\r\nPragma: no-cache\r\n\r\n"));
-	
+
 	plen=fill_tcp_data_p(buf,plen,("<!DOCTYPE html>\r\n<html lang=\"en\">\r\n"));
-	
+
 	sprintf((char*)tmp_compose_buf, "<title>Server[%s]</title>\r\n", __TIME__);
 	plen=fill_tcp_data(buf,plen,(const char*)tmp_compose_buf);		
-	
+
 	plen=fill_tcp_data_p(buf,plen,("<body>\r\n"));
 	plen=fill_tcp_data_p(buf,plen,("<center>\r\n"));
-	
+
 	plen=fill_tcp_data_p(buf,plen,("<p>Tempeature: "));
 	sprintf((char*)tmp_compose_buf, "%i 'C\r\n", g_tmpK);
 	plen=fill_tcp_data(buf,plen,(const char*)tmp_compose_buf);
 	plen=fill_tcp_data_p(buf,plen,("<p>Provided by Cortex M board\r\n"));
 
-	sprintf((char*)tmp_compose_buf, "<p>system Ticks:%u, soft_spi:%u\r\n",
-	SysTick->VAL,
-	SOFT_SPI);
+	sprintf((char*)tmp_compose_buf, "<p>clk: %u M, system Ticks:%u, soft_spi:%u, newlib_v:%s\r\n",
+			SystemCoreClock / 1000000,
+			SysTick->VAL,
+			SOFT_SPI,
+			_NEWLIB_VERSION);
 	plen=fill_tcp_data(buf,plen,(const char*)tmp_compose_buf);		
-	
-	sprintf((char*)tmp_compose_buf, "<p>MAC Rev: 0x%02X\r\n", enc28j60getrev());
-	plen=fill_tcp_data(buf,plen,(const char*)tmp_compose_buf);				
-	
+
+	sprintf((char*)tmp_compose_buf,
+			"<p>MAC Rev: 0x%02X VS:%08X VE:%08X VL:%08X\r\n",
+			enc28j60getrev(),
+			(uint32_t)VeneerStart,
+			(uint32_t)VeneerEnd,
+			(uint32_t)VeneerSize);
+	plen=fill_tcp_data(buf,plen,(const char*)tmp_compose_buf);
+
+//	sprintf((char*)tmp_compose_buf,
+//			"<p>rcs:%08X rce:%08X rcl:%08X\r\n",
+//			(uint32_t)__ram_code_start,
+//			(uint32_t)__ram_code_end,
+//			(uint32_t)__ram_code_size);
+//	plen=fill_tcp_data(buf,plen,(const char*)tmp_compose_buf);
+
+	sprintf((char*)tmp_compose_buf,
+			"<p>hbs:%08X hbe:%08X hbl:%08X\r\n",
+			(uint32_t)Heap_Bank1_Start,
+			(uint32_t)Heap_Bank1_End,
+			(uint32_t)Heap_Bank1_Size);
+	plen=fill_tcp_data(buf,plen,(const char*)tmp_compose_buf);
+
+	sprintf((char*)tmp_compose_buf,
+			"<p>isp:%08X ss:%08X\r\n",
+			(uint32_t)__initial_sp,
+			(uint32_t)stack_size);
+	plen=fill_tcp_data(buf,plen,(const char*)tmp_compose_buf);
+
 	plen=fill_tcp_data_p(buf,plen,("\r\n<p>LED Status:"));
 	if ((LED_ON_STAT == LD_05_Stat())){
 		plen=fill_tcp_data_p(buf,plen,("<font color=\"#00FF00\">"));
@@ -97,7 +139,7 @@ uint32_t print_webpage(uint8_t *buf){
 
 	plen=fill_tcp_data_p(buf,plen,("<a href=\""));
 	sprintf((char*)tmp_compose_buf, "http://%u.%u.%u.%u/", 
-	g_ip_addr[0],g_ip_addr[1],g_ip_addr[2],g_ip_addr[3]);
+			g_ip_addr[0],g_ip_addr[1],g_ip_addr[2],g_ip_addr[3]);
 	plen=fill_tcp_data(buf,plen, (const char*)tmp_compose_buf);
 	plen=fill_tcp_data_p(buf,plen,("\">[Refresh]</a>\r\n<p><a href=\""));
 
@@ -109,97 +151,88 @@ uint32_t print_webpage(uint8_t *buf){
 	}
 	plen=fill_tcp_data_p(buf,plen,("\">LED Switch</a><p>"));
 
-	plen=fill_tcp_data_p(buf,plen,("<hr><p>XMC1 Board Simple Server\r\n"));
+	plen=fill_tcp_data_p(buf,plen,("<hr><p>Board Simple Server\r\n"));
 
 	plen=fill_tcp_data_p(buf,plen,("</center>\r\n"));
 	plen=fill_tcp_data_p(buf,plen,("</body>\r\n"));
 	plen=fill_tcp_data_p(buf,plen,("</html>\r\n"));	
-	
+
+	printf("web page len:%u\n", plen);
+
 	return plen;
 }
 
 void protocol_init(void){
 	//using static configuration now
+	printf("MAC:%02X,%02X,%02X,%02X,%02X,%02X\n",
+			g_mac_addr[0],g_mac_addr[1],g_mac_addr[2],g_mac_addr[3],g_mac_addr[4],g_mac_addr[5]);
+	printf("IP:%d.%d.%d.%d\n",
+			g_ip_addr[0],g_ip_addr[1],g_ip_addr[2],g_ip_addr[3]);
+	printf("Port:%d\n",HTTP_PORT);
 }
 
-void server_loop(void){  
-	uint32_t plen,dat_p,i1=0,payloadlen=0;
-	char *buf1 = 0;
-	signed char cmd;
-
-	printf("MAC:%02X,%02X,%02X,%02X,%02X,%02X\n",
-	g_mac_addr[0],g_mac_addr[1],g_mac_addr[2],g_mac_addr[3],g_mac_addr[4],g_mac_addr[5]);
-	printf("IP:%d.%d.%d.%d\n",
-	g_ip_addr[0],g_ip_addr[1],g_ip_addr[2],g_ip_addr[3]);
-	printf("Port:%d\n",HTTP_PORT);
+void server_loop(void) {
+	uint16_t plen;
+	uint16_t dat_p;
+	uint16_t payloadlen=0;
+	int8_t cmd;
 
 	//init the ethernet/ip layer:
 	while(true){
 		g_tmpK = XMC1000_CalcTemperature()-273;
 
-		plen = enc28j60PacketReceive(BUFFER_SIZE, buf);
+		plen = enc28j60PacketReceive(MAX_FRAMELEN, net_buf);
 
-		if(plen==0){
+		if(plen==0) {
 			continue; 
-		}
-
-		//Process ARP Request
-		if(eth_type_is_arp_and_my_ip(buf,plen)){
-			make_arp_answer_from_request(buf);
+		} else if(eth_type_is_arp_and_my_ip(net_buf,plen)) {
+			//Process ARP Request
+			make_arp_answer_from_request(net_buf);
 			continue;
-		}
-
-		//Only Process IP Packet destinated at me
-		if(eth_type_is_ip_and_my_ip(buf,plen)==0) {
+		} else if(eth_type_is_ip_and_my_ip(net_buf,plen)==0) {
+			//Only Process IP Packet destinated at me
 			printf("$");
 			continue;
-		}
-		
-		//Process ICMP packet
-		if(buf[IP_PROTO_P]==IP_PROTO_ICMP_V && buf[ICMP_TYPE_P]==ICMP_TYPE_ECHOREQUEST_V){
-
-			printf("Rcvd ICMP from [%d.%d.%d.%d]\n",buf[ETH_ARP_SRC_IP_P],buf[ETH_ARP_SRC_IP_P+1],
-					buf[ETH_ARP_SRC_IP_P+2],buf[ETH_ARP_SRC_IP_P+3]);
-			make_echo_reply_from_request(buf, plen);
+		} else if(net_buf[IP_PROTO_P]==IP_PROTO_ICMP_V && net_buf[ICMP_TYPE_P]==ICMP_TYPE_ECHOREQUEST_V){
+			//Process ICMP packet
+			printf("Rxd ICMP from [%d.%d.%d.%d]\n",net_buf[ETH_ARP_SRC_IP_P],net_buf[ETH_ARP_SRC_IP_P+1],
+					net_buf[ETH_ARP_SRC_IP_P+2],net_buf[ETH_ARP_SRC_IP_P+3]);
+			make_echo_reply_from_request(net_buf, plen);
 			continue;
-		}
-
-		//Process TCP packet with port 80
-		if (buf[IP_PROTO_P]==IP_PROTO_TCP_V&&buf[TCP_DST_PORT_H_P]==0&&buf[TCP_DST_PORT_L_P]==HTTP_PORT) {
-			printf("XMC1 Rcvd TCP[80] pkt\n");
-			if (buf[TCP_FLAGS_P] & TCP_FLAGS_SYN_V) {
+		} else if (net_buf[IP_PROTO_P]==IP_PROTO_TCP_V&&net_buf[TCP_DST_PORT_H_P]==0&&net_buf[TCP_DST_PORT_L_P]==HTTP_PORT) {
+			//Process TCP packet with HTTP_PORT
+			printf("Rxd TCP http pkt\n");
+			if (net_buf[TCP_FLAGS_P] & TCP_FLAGS_SYN_V) {
 				printf("Type SYN\n");
-				make_tcp_synack_from_syn(buf);
+				make_tcp_synack_from_syn(net_buf);
 				continue;
 			}
-			if (buf[TCP_FLAGS_P] & TCP_FLAGS_ACK_V) {
+			if (net_buf[TCP_FLAGS_P] & TCP_FLAGS_ACK_V) {
 				printf("Type ACK\n");
-				init_len_info(buf); // init some data structures
+				init_len_info(net_buf); // init some data structures
 				dat_p=get_tcp_data_pointer();
 				if (dat_p==0) {
-					if (buf[TCP_FLAGS_P] & TCP_FLAGS_FIN_V) {
-						make_tcp_ack_from_any(buf);
+					if (net_buf[TCP_FLAGS_P] & TCP_FLAGS_FIN_V) {
+						make_tcp_ack_from_any(net_buf);
 					}
 					continue;
 				}
-					// Process Telnet request
-				if (strncmp("GET ",(char *)&(buf[dat_p]),4)!=0){
-					plen=fill_tcp_data_p(buf,0,("XMC1\r\n\n\rHTTP/1.0 200 OK\r\nContent-Type: text/html\r\n\r\n<h1>200 OK</h1>"));
+				// Process Telnet request
+				if (strncmp("GET ",(char *)&(net_buf[dat_p]),4)!=0){
+					plen=fill_tcp_data_p(net_buf,0,("XMC1\r\n\n\rHTTP/1.0 200 OK\r\nContent-Type: text/html\r\n\r\n<h1>200 OK</h1>"));
 					goto SENDTCP;
 				}
-					//Process HTTP Request
-				if (strncmp("/ ",(char *)&(buf[dat_p+4]),2)==0) {
+				//Process HTTP Request
+				if (strncmp("/ ",(char *)&(net_buf[dat_p+4]),2)==0) {
 					//Update Web Page Content
-					plen=print_webpage(buf);
-
+					plen=prepare_page(net_buf);
 					goto SENDTCP;
 				}
-				
+
 				//Analysis the command in the URL
-				cmd=analyse_get_url((char *)&(buf[dat_p+5]));
+				cmd=analyse_get_url((char *)&(net_buf[dat_p+5]));
 				if (cmd < 0) {
-					printf("*");
-					plen=fill_tcp_data_p(buf,0,("HTTP/1.0 401 Unauthorized\r\nContent-Type: text/html\r\n\r\n<h1>401 Unauthorized</h1>"));
+					plen=fill_tcp_data_p(net_buf,0,("HTTP/1.0 401 Unauthorized\r\nContent-Type: text/html\r\n\r\n<h1>401 Unauthorized</h1>"));
 					goto SENDTCP;
 				}
 				if (cmd==1)	{
@@ -212,30 +245,34 @@ void server_loop(void){
 					}
 				}
 				//Update Web Page Content
-				plen=print_webpage(buf);
+				plen=prepare_page(net_buf);
 
 				SENDTCP:
 				// send ack for http get
-				make_tcp_ack_from_any(buf); 
+				make_tcp_ack_from_any(net_buf);
 				// send data
-				make_tcp_ack_with_data(buf,plen); 
+				make_tcp_ack_with_data(net_buf,plen);
 				continue;
 			}
 		}
+#if(0 != UDP_TEST_SUPPORT)
+		else if ( (net_buf[IP_PROTO_P]==IP_PROTO_UDP_V)&&
+				(net_buf[UDP_DST_PORT_H_P]==(TEST_UDP_PORT>>8))&&
+				(net_buf[UDP_DST_PORT_L_P]==(uint8_t)TEST_UDP_PORT) ) {
+			//Process UDP Packet with port TEST_UDP_PORT
+			payloadlen=	net_buf[UDP_LEN_H_P];
+			payloadlen = payloadlen<<8;
+			payloadlen = (payloadlen+net_buf[UDP_LEN_L_P])-UDP_HEADER_LEN;
 
-		//Process UDP Packet with port TEST_UDP_PORT
-		if ( (buf[IP_PROTO_P]==IP_PROTO_UDP_V)&&
-			(buf[UDP_DST_PORT_H_P]==(TEST_UDP_PORT>>8))&&
-		(buf[UDP_DST_PORT_L_P]==(uint8_t)TEST_UDP_PORT) ) {
-			payloadlen=	  buf[UDP_LEN_H_P];
-			payloadlen=payloadlen<<8;
-			payloadlen=(payloadlen+buf[UDP_LEN_L_P])-UDP_HEADER_LEN;
-
-			for(i1=0; i1<payloadlen; i1++){         
-				buf1[i1]=buf[UDP_DATA_P+i1];
+			for(uint16_t i=0; i<payloadlen; i++){
+				udp_buf[i]=net_buf[UDP_DATA_P+i];
 			}
 
-			make_udp_reply_from_request(buf,buf1,payloadlen, TEST_UDP_PORT);
+			make_udp_reply_from_request(net_buf,udp_buf, payloadlen, TEST_UDP_PORT);
+		}
+#endif //#if(0 != UDP_TEST_SUPPORT)
+		else {
+			//;
 		}
 	}
 }

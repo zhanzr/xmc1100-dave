@@ -227,7 +227,7 @@
 // buffer boundaries applied to internal 8K ram
 // the entire available packet buffer space is allocated
 //
-// start with recbuf at 0/
+// start with recbuf at 0
 #define RXSTART_INIT     0x0
 // receive buffer end
 #define RXSTOP_INIT      (0x1FFF-0x0600-1)
@@ -242,6 +242,9 @@
 
 //#define SOFT_SPI	0
 #define SOFT_SPI	1
+
+#define UDP_TEST_SUPPORT	0
+//#define UDP_TEST_SUPPORT	1
 
 void spi_init(void);
 

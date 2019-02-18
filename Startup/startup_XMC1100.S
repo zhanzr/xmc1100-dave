@@ -90,8 +90,10 @@
  *    <o0.31>      do not move CLK_VAL1 to SCU_CLKCR[0..19]
  *  </h>
  *****************************************************************************/
-#define CLKVAL1_SSW 0x00010400
-
+@ 8 MHz
+@#define CLKVAL1_SSW 0x00010400
+@ 32 MHz
+#define CLKVAL1_SSW 0x00010100
 /*****************************************************************************
  *  <h> CLK_VAL2 Configuration
  *    <o0.0>    disable VADC and SHS Gating
