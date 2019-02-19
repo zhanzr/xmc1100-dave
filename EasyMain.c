@@ -98,10 +98,12 @@ int main(void){
 	__IO uint32_t deltaTick;
 
 	__IO uint32_t i = 0;
-	// Clock configuration
-//	XMC_SCU_CLOCK_CONFIG_t clock_config = { .rtc_src =
-//			XMC_SCU_CLOCK_RTCCLKSRC_DCO2, .pclk_src =
-//					XMC_SCU_CLOCK_PCLKSRC_DOUBLE_MCLK, .fdiv = 0, .idiv = 1 };
+//	// Clock configuration
+	XMC_SCU_CLOCK_CONFIG_t clock_config = {
+			.rtc_src = XMC_SCU_CLOCK_RTCCLKSRC_DCO2,
+			.pclk_src =	XMC_SCU_CLOCK_PCLKSRC_DOUBLE_MCLK,
+			.fdiv = 0,
+			.idiv = 1 };
 //	XMC_SCU_CLOCK_Init(&clock_config);
 //	SystemCoreClockUpdate();
 
@@ -148,6 +150,27 @@ int main(void){
 			*(uint32_t*)0x10000F10, *(uint32_t*)0x10000F04,
 			*(uint32_t*)0x10000F18,
 			SCU_GENERAL->DBGROMID, SCU_GENERAL->IDCHIP, SCU_GENERAL->ID, SCB->CPUID);
+
+	for(uint8_t i=1; i<4; ++i) {
+		for(uint8_t f=0; f<10; ++f) {
+			clock_config.idiv = i;
+			clock_config.fdiv = f;
+			//Reconfigure the MCLK
+			XMC_SCU_CLOCK_Init(&clock_config);
+
+			SysTick_Config(SystemCoreClock / 1000);
+
+			//Reconfigure the UART for output
+			XMC_UART_CH_Stop(XMC_UART0_CH1);
+			XMC_UART_CH_Init(XMC_UART0_CH1, &uart_config);
+			XMC_UART_CH_Start(XMC_UART0_CH1);
+			HAL_Delay(10);
+
+			printf("I:%u FD:%u MCLK:%u\n", i, f, SystemCoreClock );
+
+			HAL_Delay(90);
+		}
+	}
 
 	interface_init();
 	protocol_init();
