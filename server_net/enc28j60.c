@@ -119,30 +119,39 @@ void ENC28J60_CSH(void){
 	XMC_SPI_CH_DisableSlaveSelect(XMC_SPI0_CH0);
 }
 
-void spi_write(uint8_t raw){
-	/*Sending a byte*/
-	XMC_SPI_CH_Transmit(XMC_SPI0_CH0, raw, XMC_SPI_CH_MODE_STANDARD);
-	//uint16_t XMC_SPI_CH_GetReceivedData(XMC_USIC_CH_t *const channel);
-	/*Wait till the byte has been transmitted*/
-	while((XMC_SPI_CH_GetStatusFlag(XMC_SPI0_CH0) & XMC_SPI_CH_STATUS_FLAG_TRANSMIT_SHIFT_INDICATION) == 0U);
-	XMC_SPI_CH_ClearStatusFlag(XMC_SPI0_CH0, XMC_SPI_CH_STATUS_FLAG_TRANSMIT_SHIFT_INDICATION);
+void spi_write(uint8_t* p_raw, uint16_t len){
+	uint8_t dummy;
+	for(uint16_t n=0; n<len; ++n){
+		/*Sending a byte*/
+		XMC_SPI_CH_Transmit(XMC_SPI0_CH0, *(p_raw+n), XMC_SPI_CH_MODE_STANDARD);
+		//uint16_t XMC_SPI_CH_GetReceivedData(XMC_USIC_CH_t *const channel);
+		/*Wait till the byte has been transmitted*/
+		while((XMC_SPI_CH_GetStatusFlag(XMC_SPI0_CH0) & XMC_SPI_CH_STATUS_FLAG_TRANSMIT_SHIFT_INDICATION) == 0U);
+		XMC_SPI_CH_ClearStatusFlag(XMC_SPI0_CH0, XMC_SPI_CH_STATUS_FLAG_TRANSMIT_SHIFT_INDICATION);
+	}
+	return;
 }
 
-uint8_t spi_read(uint8_t dummy){
-	XMC_SPI_CH_Receive(XMC_SPI0_CH0, XMC_SPI_CH_MODE_STANDARD);
-	/*Wait till the byte has been transmitted*/
-	while((XMC_SPI_CH_GetStatusFlag(XMC_SPI0_CH0) & XMC_SPI_CH_STATUS_FLAG_TRANSMIT_SHIFT_INDICATION) == 0U);
-	XMC_SPI_CH_ClearStatusFlag(XMC_SPI0_CH0, XMC_SPI_CH_STATUS_FLAG_TRANSMIT_SHIFT_INDICATION);
-	//	while((XMC_SPI_CH_GetStatusFlag(XMC_SPI0_CH0) & XMC_SPI_CH_STATUS_FLAG_ALTERNATIVE_RECEIVE_INDICATION) == 0U);
-	//	XMC_SPI_CH_ClearStatusFlag(XMC_SPI0_CH0, XMC_SPI_CH_STATUS_FLAG_ALTERNATIVE_RECEIVE_INDICATION);
-	//	while((XMC_SPI_CH_GetStatusFlag(XMC_SPI0_CH0) & XMC_SPI_CH_STATUS_FLAG_RECEIVE_INDICATION) == 0U);
-	//	XMC_SPI_CH_ClearStatusFlag(XMC_SPI0_CH0, XMC_SPI_CH_STATUS_FLAG_RECEIVE_INDICATION);
+void spi_read(uint8_t* p_buf, uint16_t len){
+	uint8_t dummy = 0xff;
 
-	uint16_t ret16 = XMC_SPI_CH_GetReceivedData(XMC_SPI0_CH0);
-	if(ret16 != (ret16&0x00ff)){
-		printf("%04X ", ret16);
+	for(uint16_t n=0; n<len; ++n){
+		XMC_SPI_CH_Receive(XMC_SPI0_CH0, XMC_SPI_CH_MODE_STANDARD);
+		/*Wait till the byte has been transmitted*/
+		while((XMC_SPI_CH_GetStatusFlag(XMC_SPI0_CH0) & XMC_SPI_CH_STATUS_FLAG_TRANSMIT_SHIFT_INDICATION) == 0U);
+		XMC_SPI_CH_ClearStatusFlag(XMC_SPI0_CH0, XMC_SPI_CH_STATUS_FLAG_TRANSMIT_SHIFT_INDICATION);
+		//	while((XMC_SPI_CH_GetStatusFlag(XMC_SPI0_CH0) & XMC_SPI_CH_STATUS_FLAG_ALTERNATIVE_RECEIVE_INDICATION) == 0U);
+		//	XMC_SPI_CH_ClearStatusFlag(XMC_SPI0_CH0, XMC_SPI_CH_STATUS_FLAG_ALTERNATIVE_RECEIVE_INDICATION);
+		//	while((XMC_SPI_CH_GetStatusFlag(XMC_SPI0_CH0) & XMC_SPI_CH_STATUS_FLAG_RECEIVE_INDICATION) == 0U);
+		//	XMC_SPI_CH_ClearStatusFlag(XMC_SPI0_CH0, XMC_SPI_CH_STATUS_FLAG_RECEIVE_INDICATION);
+
+		uint16_t ret16 = XMC_SPI_CH_GetReceivedData(XMC_SPI0_CH0);
+		if(ret16 != (ret16&0x00ff)){
+			printf("%04X ", ret16);
+		}
+		*(p_buf+n) = (uint8_t)ret16;
 	}
-	return (uint8_t)ret16;
+	return;
 }
 
 XMC_GPIO_CONFIG_t rx_pin_config;
@@ -153,34 +162,17 @@ XMC_GPIO_CONFIG_t clk_pin_config;
 /**
  * @brief SPI configuration structure
  */
-XMC_SPI_CH_CONFIG_t spi_config =
-{
-		.baudrate = 5000,
+XMC_SPI_CH_CONFIG_t spi_config ={
+		.baudrate = 675000,
 		.bus_mode = XMC_SPI_CH_BUS_MODE_MASTER,
 		.selo_inversion = XMC_SPI_CH_SLAVE_SEL_INV_TO_MSLS,
 		.parity_mode = XMC_USIC_CH_PARITY_MODE_NONE
 };
-
 void spi_init(void){
-	//	//CS -> P0.9
-	//	XMC_GPIO_SetMode(XMC_GPIO_PORT0, 9, XMC_GPIO_MODE_OUTPUT_PUSH_PULL);
-	//	//SCLK -> P0.8
-	//	XMC_GPIO_SetMode(XMC_GPIO_PORT0, 8, XMC_GPIO_MODE_OUTPUT_PUSH_PULL);
-	//
-	//	//MOSI -> P1.0
-	//	XMC_GPIO_SetMode(XMC_GPIO_PORT1, 0, XMC_GPIO_MODE_OUTPUT_PUSH_PULL);
-
-	//	//MISO -> P1.1
-	////	XMC_GPIO_SetMode(XMC_GPIO_PORT1, 1, XMC_GPIO_MODE_INPUT_TRISTATE);
-	//	XMC_GPIO_SetMode(XMC_GPIO_PORT1, 1, XMC_GPIO_MODE_OUTPUT_PUSH_PULL);
-
-	/* Initialize and Start SPI */
-	XMC_SPI_CH_Init(XMC_SPI0_CH0, &spi_config);
-	XMC_SPI_CH_SetInputSource(XMC_SPI0_CH0, XMC_SPI_CH_INPUT_DIN0, USIC0_C0_DX0_P1_1);
-	XMC_SPI_CH_SetBitOrderMsbFirst(XMC_SPI0_CH0);
-	XMC_SPI_CH_SetSlaveSelectDelay(XMC_SPI0_CH0, 1);
-	XMC_SPI_CH_EnableInterwordDelay(XMC_SPI0_CH0);
-	XMC_SPI_CH_SetInterwordDelaySCLK(XMC_SPI0_CH0, 1);
+	//CS -> P0.9
+	//SCLK -> P0.8
+	//MOSI -> P1.0
+	//MISO -> P1.1
 
 	/* GPIO Input pin configuration */
 	rx_pin_config.mode = XMC_GPIO_MODE_INPUT_TRISTATE;
@@ -197,6 +189,14 @@ void spi_init(void){
 	/* GPIO Clock pin configuration */
 	clk_pin_config.mode = XMC_GPIO_MODE_OUTPUT_PUSH_PULL_ALT6;
 	XMC_GPIO_Init(XMC_GPIO_PORT0,8, &clk_pin_config);
+
+	/* Initialize and Start SPI */
+	XMC_SPI_CH_SetInputSource(XMC_SPI0_CH0, XMC_SPI_CH_INPUT_DIN0, USIC0_C0_DX0_P1_1);
+	XMC_SPI_CH_SetBitOrderMsbFirst(XMC_SPI0_CH0);
+	XMC_SPI_CH_SetSlaveSelectDelay(XMC_SPI0_CH0, 2);
+	XMC_SPI_CH_EnableInterwordDelay(XMC_SPI0_CH0);
+	XMC_SPI_CH_SetInterwordDelaySCLK(XMC_SPI0_CH0, 2);
+	XMC_SPI_CH_Init(XMC_SPI0_CH0, &spi_config);
 
 	XMC_SPI_CH_Start(XMC_SPI0_CH0);
 }
@@ -274,33 +274,33 @@ static void enc28j60SetBank(uint8_t address){
 	}
 }
 
-static uint8_t enc28j60Read(uint8_t address){
+static uint8_t enc28j60Read(uint8_t address) {
 	// set the bank
 	enc28j60SetBank(address);
 	// do the read
 	return enc28j60ReadOp(ENC28J60_READ_CTRL_REG, address);
 }
 
-static void enc28j60Write(uint8_t address, uint8_t data){
+static void enc28j60Write(uint8_t address, uint8_t data) {
 	// set the bank
 	enc28j60SetBank(address);
 	// do the write
 	enc28j60WriteOp(ENC28J60_WRITE_CTRL_REG, address, data);
 }
 
-static void enc28j60PhyWrite(uint8_t address, uint32_t data){
+static void enc28j60PhyWrite(uint8_t address, uint16_t data) {
 	// set the PHY register address
 	enc28j60Write(MIREGADR, address);
 	// write the PHY data
-	enc28j60Write(MIWRL, data);
-	enc28j60Write(MIWRH, data>>8);
+	enc28j60Write(MIWRL, (uint8_t)data);
+	enc28j60Write(MIWRH, (uint8_t)(data>>8));
 	// wait until the PHY write completes
 	while(enc28j60Read(MISTAT) & MISTAT_BUSY){
 		__NOP();
 	}
 }
 
-uint16_t enc28j60_phy_read(uint8_t address){
+uint16_t enc28j60_phy_read(uint8_t address) {
 	// Set the right address and start the register read operation
 	enc28j60Write(MIREGADR, address);
 	enc28j60Write(MICMD, MICMD_MIIRD);
@@ -318,7 +318,7 @@ uint16_t enc28j60_phy_read(uint8_t address){
 	return (dat16<<8)|dat8;
 }
 
-static void enc28j60clkout(uint8_t clk){
+static void enc28j60clkout(uint8_t clk) {
 	//111 = Reserved for factory test. Do not use. Glitch prevention not assured.
 	//110 = Reserved for factory test. Do not use. Glitch prevention not assured.
 	//101 = CLKOUT outputs main clock divided by 8 (3.125 MHz)

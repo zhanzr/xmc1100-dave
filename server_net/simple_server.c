@@ -31,6 +31,13 @@ int32_t g_tmpK;
 
 const char ON_STR[] = "On";
 const char OFF_STR[] = "Off";
+const char ON_05_STR[] = "On05";
+const char OFF_05_STR[] = "Off05";
+const char ON_06_STR[] = "On06";
+const char OFF_06_STR[] = "Off06";
+
+#define LED_ON_STAT		0
+#define LED_OFF_STAT	1
 
 void LD_05_ON(void){
 	XMC_GPIO_SetOutputLow(XMC_GPIO_PORT0, 5);
@@ -40,19 +47,33 @@ void LD_05_OFF(void){
 	XMC_GPIO_SetOutputHigh(XMC_GPIO_PORT0, 5);
 }
 
-#define LED_ON_STAT		0
-#define LED_OFF_STAT	1
 uint32_t LD_05_Stat(void) {
 	return XMC_GPIO_GetInput(XMC_GPIO_PORT0, 5);
 }
 
-int8_t analyse_get_url(char *str) {
+void LD_06_ON(void){
+	XMC_GPIO_SetOutputLow(XMC_GPIO_PORT0, 6);
+}
+
+void LD_06_OFF(void){
+	XMC_GPIO_SetOutputHigh(XMC_GPIO_PORT0, 6);
+}
+
+uint32_t LD_06_Stat(void) {
+	return XMC_GPIO_GetInput(XMC_GPIO_PORT0, 6);
+}
+
+int16_t analyse_get_url(char *str) {
 	char* p_str = str;
 
-	if (0==strncmp(p_str, ON_STR, strlen(ON_STR))) {
-		return 1;
-	} else if (0==strncmp(p_str, OFF_STR, strlen(OFF_STR))) {
-		return 0;
+	if (0==strncmp(p_str, ON_05_STR, strlen(ON_05_STR))) {
+		return 0x0105;
+	} else if (0==strncmp(p_str, OFF_05_STR, strlen(OFF_05_STR))) {
+		return 0x0005;
+	} else if (0==strncmp(p_str, ON_06_STR, strlen(ON_06_STR))) {
+		return 0x0106;
+	} else if (0==strncmp(p_str, OFF_06_STR, strlen(OFF_06_STR))) {
+		return 0x0006;
 	} else {
 		return(-1);
 	}
@@ -86,8 +107,7 @@ uint16_t prepare_page(uint8_t *buf) {
 	plen=fill_tcp_data_p(buf,plen,("<body>\r\n"));
 	plen=fill_tcp_data_p(buf,plen,("<center>\r\n"));
 
-	plen=fill_tcp_data_p(buf,plen,("<p>Tempeature: "));
-	sprintf((char*)tmp_compose_buf, "%i 'C\r\n", g_tmpK);
+	sprintf((char*)tmp_compose_buf, "<p>DieTempSensor: %i 'C\r\n", g_tmpK);
 	plen=fill_tcp_data(buf,plen,(const char*)tmp_compose_buf);
 	plen=fill_tcp_data_p(buf,plen,("<p>Provided by Cortex M board\r\n"));
 
@@ -113,43 +133,68 @@ uint16_t prepare_page(uint8_t *buf) {
 //			(uint32_t)__ram_code_size);
 //	plen=fill_tcp_data(buf,plen,(const char*)tmp_compose_buf);
 
-	sprintf((char*)tmp_compose_buf,
-			"<p>hbs:%08X hbe:%08X hbl:%08X\r\n",
-			(uint32_t)Heap_Bank1_Start,
-			(uint32_t)Heap_Bank1_End,
-			(uint32_t)Heap_Bank1_Size);
-	plen=fill_tcp_data(buf,plen,(const char*)tmp_compose_buf);
+//	sprintf((char*)tmp_compose_buf,
+//			"<p>hbs:%08X hbe:%08X hbl:%08X\r\n",
+//			(uint32_t)Heap_Bank1_Start,
+//			(uint32_t)Heap_Bank1_End,
+//			(uint32_t)Heap_Bank1_Size);
+//	plen=fill_tcp_data(buf,plen,(const char*)tmp_compose_buf);
+//
+//	sprintf((char*)tmp_compose_buf,
+//			"<p>isp:%08X ss:%08X\r\n",
+//			(uint32_t)__initial_sp,
+//			(uint32_t)stack_size);
+//	plen=fill_tcp_data(buf,plen,(const char*)tmp_compose_buf);
 
-	sprintf((char*)tmp_compose_buf,
-			"<p>isp:%08X ss:%08X\r\n",
-			(uint32_t)__initial_sp,
-			(uint32_t)stack_size);
-	plen=fill_tcp_data(buf,plen,(const char*)tmp_compose_buf);
-
-	plen=fill_tcp_data_p(buf,plen,("\r\n<p>LED Status:"));
+	plen=fill_tcp_data_p(buf,plen,("\r\n<p>LED 05 Status:"));
 	if ((LED_ON_STAT == LD_05_Stat())){
-		plen=fill_tcp_data_p(buf,plen,("<font color=\"#00FF00\">"));
+		plen=fill_tcp_data_p(buf,plen,("<font color=\"red\">"));
 		plen=fill_tcp_data_p(buf,plen,(ON_STR));
 		plen=fill_tcp_data_p(buf,plen,("</font>"));
 	} else {
-		plen=fill_tcp_data_p(buf,plen,("<font color=\"#FF0000\">"));
+		plen=fill_tcp_data_p(buf,plen,("<font color=\"green\">"));
 		plen=fill_tcp_data_p(buf,plen,(OFF_STR));
 		plen=fill_tcp_data_p(buf,plen,("</font>"));
 	}
 
-	plen=fill_tcp_data_p(buf,plen,("<a href=\""));
-	sprintf((char*)tmp_compose_buf, "http://%u.%u.%u.%u/", 
+	plen=fill_tcp_data_p(buf,plen,("\t\t<a href=\""));
+	sprintf((char*)tmp_compose_buf, "http://%u.%u.%u.%u/",
+			g_ip_addr[0],g_ip_addr[1],g_ip_addr[2],g_ip_addr[3]);
+	plen=fill_tcp_data(buf,plen, (const char*)tmp_compose_buf);
+	if ((LED_ON_STAT == LD_05_Stat())){
+		plen=fill_tcp_data_p(buf,plen,(OFF_05_STR));
+	}else{
+		plen=fill_tcp_data_p(buf,plen,(ON_05_STR));
+	}
+	plen=fill_tcp_data_p(buf,plen,("\">Toggle</a>"));
+
+	plen=fill_tcp_data_p(buf,plen,("\r\n<p>LED 06 Status:"));
+	if ((LED_ON_STAT == LD_06_Stat())){
+		plen=fill_tcp_data_p(buf,plen,("<font color=\"red\">"));
+		plen=fill_tcp_data_p(buf,plen,(ON_STR));
+		plen=fill_tcp_data_p(buf,plen,("</font>"));
+	} else {
+		plen=fill_tcp_data_p(buf,plen,("<font color=\"green\">"));
+		plen=fill_tcp_data_p(buf,plen,(OFF_STR));
+		plen=fill_tcp_data_p(buf,plen,("</font>"));
+	}
+
+	plen=fill_tcp_data_p(buf,plen,("\t\t<a href=\""));
+	sprintf((char*)tmp_compose_buf, "http://%u.%u.%u.%u/",
+			g_ip_addr[0],g_ip_addr[1],g_ip_addr[2],g_ip_addr[3]);
+	plen=fill_tcp_data(buf,plen, (const char*)tmp_compose_buf);
+	if ((LED_ON_STAT == LD_06_Stat())){
+		plen=fill_tcp_data_p(buf,plen,(OFF_06_STR));
+	}else{
+		plen=fill_tcp_data_p(buf,plen,(ON_06_STR));
+	}
+	plen=fill_tcp_data_p(buf,plen,("\">Toggle</a>"));
+
+	plen=fill_tcp_data_p(buf,plen,("<p><a href=\""));
+	sprintf((char*)tmp_compose_buf, "http://%u.%u.%u.%u/",
 			g_ip_addr[0],g_ip_addr[1],g_ip_addr[2],g_ip_addr[3]);
 	plen=fill_tcp_data(buf,plen, (const char*)tmp_compose_buf);
 	plen=fill_tcp_data_p(buf,plen,("\">[Refresh]</a>\r\n<p><a href=\""));
-
-	plen=fill_tcp_data(buf,plen, (const char*)tmp_compose_buf);
-	if ((LED_ON_STAT == LD_05_Stat())){
-		plen=fill_tcp_data_p(buf,plen,(OFF_STR));
-	}else{
-		plen=fill_tcp_data_p(buf,plen,(ON_STR));
-	}
-	plen=fill_tcp_data_p(buf,plen,("\">LED Switch</a><p>"));
 
 	plen=fill_tcp_data_p(buf,plen,("<hr><p>Board Simple Server\r\n"));
 
@@ -175,7 +220,7 @@ void server_loop(void) {
 	uint16_t plen;
 	uint16_t dat_p;
 	uint16_t payloadlen=0;
-	int8_t cmd;
+	int16_t cmd16;
 
 	//init the ethernet/ip layer:
 	while(true){
@@ -230,18 +275,26 @@ void server_loop(void) {
 				}
 
 				//Analysis the command in the URL
-				cmd=analyse_get_url((char *)&(net_buf[dat_p+5]));
-				if (cmd < 0) {
+				cmd16 = analyse_get_url((char *)&(net_buf[dat_p+5]));
+				if (cmd16 < 0) {
 					plen=fill_tcp_data_p(net_buf,0,("HTTP/1.0 401 Unauthorized\r\nContent-Type: text/html\r\n\r\n<h1>401 Unauthorized</h1>"));
 					goto SENDTCP;
 				}
-				if (cmd==1)	{
+				if (0x0105 == cmd16)	{
 					if(LED_ON_STAT != LD_05_Stat()) {
 						LD_05_ON();
 					}
-				} else if (cmd==0) {
+				} else if (0x0005 == cmd16) {
 					if(LED_OFF_STAT != LD_05_Stat()) {
 						LD_05_OFF();
+					}
+				} else if (0x0106 == cmd16)	{
+					if(LED_ON_STAT != LD_06_Stat()) {
+						LD_06_ON();
+					}
+				} else if (0x0006 == cmd16) {
+					if(LED_OFF_STAT != LD_06_Stat()) {
+						LD_06_OFF();
 					}
 				}
 				//Update Web Page Content

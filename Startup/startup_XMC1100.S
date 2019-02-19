@@ -127,6 +127,7 @@
 /* Vector Table - This is indirectly branched to through the veneers */
     .syntax unified   
     .cpu cortex-m0
+    .file   "startup_XMC1100.S"
 
     .section .reset, "a", %progbits
     

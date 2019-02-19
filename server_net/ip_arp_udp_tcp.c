@@ -4,15 +4,16 @@
 #include "ip_arp_udp_tcp.h"
 #include "enc28j60.h"
 
-static uint32_t info_hdr_len;
-static uint32_t info_data_len;
-// my initial tcp sequence number
-static uint8_t seqnum=0xa; 
+static uint16_t g_info_hdr_len;
+static uint16_t g_info_data_len;
+
+//initial tcp sequence number
+static uint8_t g_seq_num = 0xa;
 
 const uint8_t g_ip_addr[4] = {192,168,32,33};
 const uint8_t g_mac_addr[6] = {0xB0,0x9A,0x78, 0x56, 0x34,0x12};
 
-void interface_init(void){
+void interface_init(void) {
 	enc28j60Init(g_mac_addr);	
 }
 
@@ -194,12 +195,12 @@ void make_tcphead(uint8_t *buf,uint32_t rel_ack_num,uint8_t mss,uint8_t cp_seq){
 		buf[TCP_SEQ_H_P+0]= 0;
 		buf[TCP_SEQ_H_P+1]= 0;
 		// we step only the second byte, this allows us to send packts 
-		// with 255 bytes or 512 (if we step the initial seqnum by 2)
-		buf[TCP_SEQ_H_P+2]= seqnum; 
-		buf[TCP_SEQ_H_P+3]= 0;
+		// with 255 bytes or 512 (if we step the initial g_seq_num by 2)
+		buf[TCP_SEQ_H_P+2] = g_seq_num;
+		buf[TCP_SEQ_H_P+3] = 0;
 		// step the inititial seq num by something we will not use
 		// during this tcp session:
-		seqnum+=2;
+		g_seq_num += 2;
 	}
 	// zero the checksum
 	buf[TCP_CHECKSUM_H_P]=0;
@@ -288,28 +289,29 @@ void make_tcp_synack_from_syn(uint8_t *buf){
 // Returns 0 if there is no data
 // You must call init_len_info once before calling this function
 uint32_t get_tcp_data_pointer(void) {
-	if (info_data_len){
-		return((uint32_t)TCP_SRC_PORT_H_P+info_hdr_len);
+	if (g_info_data_len){
+		return((uint32_t)TCP_SRC_PORT_H_P+g_info_hdr_len);
 	} else {
 		return(0);
 	}
 }
 
 // do some basic length calculations and store the result in static varibales
-void init_len_info(uint8_t *buf){
-	info_data_len=(buf[IP_TOTLEN_H_P]<<8)|(buf[IP_TOTLEN_L_P]&0xff);
-	info_data_len-=IP_HEADER_LEN;
-	info_hdr_len=(buf[TCP_HEADER_LEN_P]>>4)*4; // generate len in bytes;
-	info_data_len-=info_hdr_len;
-	if (info_data_len<=0){
-		info_data_len=0;
+void init_len_info(uint8_t *buf) {
+	g_info_data_len = (buf[IP_TOTLEN_H_P]<<8)|(buf[IP_TOTLEN_L_P]&0xff);
+	g_info_data_len -= IP_HEADER_LEN;
+	// generate len in bytes
+	g_info_hdr_len = (buf[TCP_HEADER_LEN_P]>>4) * 4;
+	g_info_data_len -= g_info_hdr_len;
+	if (g_info_data_len <= 0) {
+		g_info_data_len = 0;
 	}
 }
 
 // fill in tcp data at position pos. pos=0 means start of
 // tcp data. Returns the position at which the string after
 // this string could be filled.
-uint32_t fill_tcp_data_p(uint8_t *buf,uint32_t pos, const uint8_t *progmem_s){
+uint32_t fill_tcp_data_p(uint8_t *buf,uint32_t pos, const uint8_t *progmem_s) {
 	char c;
 	// fill in tcp data at position pos	  jesse
 	while ((c = (char)*(progmem_s++)) != 0) {
@@ -340,11 +342,11 @@ void make_tcp_ack_from_any(uint8_t *buf) {
 	make_eth(buf);
 	// fill the header:
 	buf[TCP_FLAGS_P]=TCP_FLAGS_ACK_V;
-	if (info_data_len==0){
-		// if there is no data then we must still acknoledge one packet
+	if (g_info_data_len==0){
+		// if there is no data then we must still acknowledge one packet
 		make_tcphead(buf,1,0,1); // no options
 	} else {
-		make_tcphead(buf,info_data_len,0,1); // no options
+		make_tcphead(buf,g_info_data_len,0,1); // no options
 	}
 
 	// total length field in the IP header must be set:

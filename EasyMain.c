@@ -97,30 +97,30 @@ int main(void){
 	__IO int32_t tmpL;
 	__IO uint32_t deltaTick;
 
-	__IO uint32_t i = 0;
 //	// Clock configuration
-	XMC_SCU_CLOCK_CONFIG_t clock_config = {
-			.rtc_src = XMC_SCU_CLOCK_RTCCLKSRC_DCO2,
-			.pclk_src =	XMC_SCU_CLOCK_PCLKSRC_DOUBLE_MCLK,
-			.fdiv = 0,
-			.idiv = 1 };
+//	XMC_SCU_CLOCK_CONFIG_t clock_config = {
+//			.rtc_src = XMC_SCU_CLOCK_RTCCLKSRC_DCO2,
+//			.pclk_src =	XMC_SCU_CLOCK_PCLKSRC_DOUBLE_MCLK,
+//			.fdiv = 0,
+//			.idiv = 1 };
 //	XMC_SCU_CLOCK_Init(&clock_config);
-//	SystemCoreClockUpdate();
 
-	/*Initialize the UART driver */
+	// System Timer initialization
+	SysTick_Config(SystemCoreClock / 1000);
+
+	/* Configure pins */
 	uart_tx.mode = XMC_GPIO_MODE_OUTPUT_PUSH_PULL_ALT7;
 	uart_rx.mode = XMC_GPIO_MODE_INPUT_TRISTATE;
+	XMC_GPIO_Init(UART_TX, &uart_tx);
+	XMC_GPIO_Init(UART_RX, &uart_rx);
+
 	/* Configure UART channel */
 	XMC_UART_CH_Init(XMC_UART0_CH1, &uart_config);
 	XMC_UART_CH_SetInputSource(XMC_UART0_CH1, XMC_UART_CH_INPUT_RXD,
 			USIC0_C1_DX0_P1_3);
-
 	/* Start UART channel */
 	XMC_UART_CH_Start(XMC_UART0_CH1);
 
-	/* Configure pins */
-	XMC_GPIO_Init(UART_TX, &uart_tx);
-	XMC_GPIO_Init(UART_RX, &uart_rx);
 
 	spi_init();
 
@@ -136,9 +136,6 @@ int main(void){
 	XMC_GPIO_SetOutputHigh(XMC_GPIO_PORT1, 4);
 	XMC_GPIO_SetOutputHigh(XMC_GPIO_PORT1, 5);
 
-	// System Timer initialization
-	SysTick_Config(SystemCoreClock / 1000);
-
 	/* Enable DTS */
 	XMC_SCU_StartTempMeasurement();
 
@@ -150,27 +147,6 @@ int main(void){
 			*(uint32_t*)0x10000F10, *(uint32_t*)0x10000F04,
 			*(uint32_t*)0x10000F18,
 			SCU_GENERAL->DBGROMID, SCU_GENERAL->IDCHIP, SCU_GENERAL->ID, SCB->CPUID);
-
-	for(uint8_t i=1; i<4; ++i) {
-		for(uint8_t f=0; f<10; ++f) {
-			clock_config.idiv = i;
-			clock_config.fdiv = f;
-			//Reconfigure the MCLK
-			XMC_SCU_CLOCK_Init(&clock_config);
-
-			SysTick_Config(SystemCoreClock / 1000);
-
-			//Reconfigure the UART for output
-			XMC_UART_CH_Stop(XMC_UART0_CH1);
-			XMC_UART_CH_Init(XMC_UART0_CH1, &uart_config);
-			XMC_UART_CH_Start(XMC_UART0_CH1);
-			HAL_Delay(10);
-
-			printf("I:%u FD:%u MCLK:%u\n", i, f, SystemCoreClock );
-
-			HAL_Delay(90);
-		}
-	}
 
 	interface_init();
 	protocol_init();
