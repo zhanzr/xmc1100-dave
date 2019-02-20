@@ -31,10 +31,17 @@ int32_t g_tmpK;
 
 const char ON_STR[] = "On";
 const char OFF_STR[] = "Off";
+
 const char ON_05_STR[] = "On05";
 const char OFF_05_STR[] = "Off05";
 const char ON_06_STR[] = "On06";
 const char OFF_06_STR[] = "Off06";
+const char ON_07_STR[] = "On07";
+const char OFF_07_STR[] = "Off07";
+const char ON_14_STR[] = "On14";
+const char OFF_14_STR[] = "Off14";
+const char ON_15_STR[] = "On15";
+const char OFF_15_STR[] = "Off15";
 
 #define LED_ON_STAT		0
 #define LED_OFF_STAT	1
@@ -63,6 +70,43 @@ uint32_t LD_06_Stat(void) {
 	return XMC_GPIO_GetInput(XMC_GPIO_PORT0, 6);
 }
 
+//Note LD_07 is positive control logic, other LDs are negative control logic
+void LD_07_ON(void){
+	XMC_GPIO_SetOutputHigh(XMC_GPIO_PORT0, 7);
+}
+
+void LD_07_OFF(void){
+	XMC_GPIO_SetOutputLow(XMC_GPIO_PORT0, 7);
+}
+
+uint32_t LD_07_Stat(void) {
+	return (0==XMC_GPIO_GetInput(XMC_GPIO_PORT0, 7))?1:0;
+}
+
+void LD_14_ON(void){
+	XMC_GPIO_SetOutputLow(XMC_GPIO_PORT1, 4);
+}
+
+void LD_14_OFF(void){
+	XMC_GPIO_SetOutputHigh(XMC_GPIO_PORT1, 4);
+}
+
+uint32_t LD_14_Stat(void) {
+	return XMC_GPIO_GetInput(XMC_GPIO_PORT1, 4);
+}
+
+void LD_15_ON(void){
+	XMC_GPIO_SetOutputLow(XMC_GPIO_PORT1, 5);
+}
+
+void LD_15_OFF(void){
+	XMC_GPIO_SetOutputHigh(XMC_GPIO_PORT1, 5);
+}
+
+uint32_t LD_15_Stat(void) {
+	return XMC_GPIO_GetInput(XMC_GPIO_PORT1, 5);
+}
+
 int16_t analyse_get_url(char *str) {
 	char* p_str = str;
 
@@ -74,7 +118,19 @@ int16_t analyse_get_url(char *str) {
 		return 0x0106;
 	} else if (0==strncmp(p_str, OFF_06_STR, strlen(OFF_06_STR))) {
 		return 0x0006;
-	} else {
+	} else if (0==strncmp(p_str, ON_07_STR, strlen(ON_07_STR))) {
+		return 0x0107;
+	} else if (0==strncmp(p_str, OFF_07_STR, strlen(OFF_07_STR))) {
+		return 0x0007;
+	} else if (0==strncmp(p_str, ON_14_STR, strlen(ON_14_STR))) {
+		return 0x0114;
+	} else if (0==strncmp(p_str, OFF_14_STR, strlen(OFF_14_STR))) {
+		return 0x0014;
+	} else if (0==strncmp(p_str, ON_15_STR, strlen(ON_15_STR))) {
+		return 0x0115;
+	} else if (0==strncmp(p_str, OFF_15_STR, strlen(OFF_15_STR))) {
+		return 0x0015;
+	}else {
 		return(-1);
 	}
 }
@@ -146,6 +202,7 @@ uint16_t prepare_page(uint8_t *buf) {
 //			(uint32_t)stack_size);
 //	plen=fill_tcp_data(buf,plen,(const char*)tmp_compose_buf);
 
+	//LED 0.5 Control hypelink
 	plen=fill_tcp_data_p(buf,plen,("\r\n<p>LED 05 Status:"));
 	if ((LED_ON_STAT == LD_05_Stat())){
 		plen=fill_tcp_data_p(buf,plen,("<font color=\"red\">"));
@@ -168,6 +225,7 @@ uint16_t prepare_page(uint8_t *buf) {
 	}
 	plen=fill_tcp_data_p(buf,plen,("\">Toggle</a>"));
 
+	//LED 0.6 Control hypelink
 	plen=fill_tcp_data_p(buf,plen,("\r\n<p>LED 06 Status:"));
 	if ((LED_ON_STAT == LD_06_Stat())){
 		plen=fill_tcp_data_p(buf,plen,("<font color=\"red\">"));
@@ -190,6 +248,77 @@ uint16_t prepare_page(uint8_t *buf) {
 	}
 	plen=fill_tcp_data_p(buf,plen,("\">Toggle</a>"));
 
+	//LED 0.7 Control hypelink
+	plen=fill_tcp_data_p(buf,plen,("\r\n<p>LED 07 Status:"));
+	if ((LED_ON_STAT == LD_07_Stat())){
+		plen=fill_tcp_data_p(buf,plen,("<font color=\"red\">"));
+		plen=fill_tcp_data_p(buf,plen,(ON_STR));
+		plen=fill_tcp_data_p(buf,plen,("</font>"));
+	} else {
+		plen=fill_tcp_data_p(buf,plen,("<font color=\"green\">"));
+		plen=fill_tcp_data_p(buf,plen,(OFF_STR));
+		plen=fill_tcp_data_p(buf,plen,("</font>"));
+	}
+
+	plen=fill_tcp_data_p(buf,plen,("\t\t<a href=\""));
+	sprintf((char*)tmp_compose_buf, "http://%u.%u.%u.%u/",
+			g_ip_addr[0],g_ip_addr[1],g_ip_addr[2],g_ip_addr[3]);
+	plen=fill_tcp_data(buf,plen, (const char*)tmp_compose_buf);
+	if ((LED_ON_STAT == LD_07_Stat())){
+		plen=fill_tcp_data_p(buf,plen,(OFF_07_STR));
+	}else{
+		plen=fill_tcp_data_p(buf,plen,(ON_07_STR));
+	}
+	plen=fill_tcp_data_p(buf,plen,("\">Toggle</a>"));
+
+	//LED 1.4 Control hypelink
+	plen=fill_tcp_data_p(buf,plen,("\r\n<p>LED 14 Status:"));
+	if ((LED_ON_STAT == LD_14_Stat())){
+		plen=fill_tcp_data_p(buf,plen,("<font color=\"red\">"));
+		plen=fill_tcp_data_p(buf,plen,(ON_STR));
+		plen=fill_tcp_data_p(buf,plen,("</font>"));
+	} else {
+		plen=fill_tcp_data_p(buf,plen,("<font color=\"green\">"));
+		plen=fill_tcp_data_p(buf,plen,(OFF_STR));
+		plen=fill_tcp_data_p(buf,plen,("</font>"));
+	}
+
+	plen=fill_tcp_data_p(buf,plen,("\t\t<a href=\""));
+	sprintf((char*)tmp_compose_buf, "http://%u.%u.%u.%u/",
+			g_ip_addr[0],g_ip_addr[1],g_ip_addr[2],g_ip_addr[3]);
+	plen=fill_tcp_data(buf,plen, (const char*)tmp_compose_buf);
+	if ((LED_ON_STAT == LD_14_Stat())){
+		plen=fill_tcp_data_p(buf,plen,(OFF_14_STR));
+	}else{
+		plen=fill_tcp_data_p(buf,plen,(ON_14_STR));
+	}
+	plen=fill_tcp_data_p(buf,plen,("\">Toggle</a>"));
+
+	//LED 1.5 Control hypelink
+	plen=fill_tcp_data_p(buf,plen,("\r\n<p>LED 15 Status:"));
+	if ((LED_ON_STAT == LD_15_Stat())){
+		plen=fill_tcp_data_p(buf,plen,("<font color=\"red\">"));
+		plen=fill_tcp_data_p(buf,plen,(ON_STR));
+		plen=fill_tcp_data_p(buf,plen,("</font>"));
+	} else {
+		plen=fill_tcp_data_p(buf,plen,("<font color=\"green\">"));
+		plen=fill_tcp_data_p(buf,plen,(OFF_STR));
+		plen=fill_tcp_data_p(buf,plen,("</font>"));
+	}
+
+	plen=fill_tcp_data_p(buf,plen,("\t\t<a href=\""));
+	sprintf((char*)tmp_compose_buf, "http://%u.%u.%u.%u/",
+			g_ip_addr[0],g_ip_addr[1],g_ip_addr[2],g_ip_addr[3]);
+	plen=fill_tcp_data(buf,plen, (const char*)tmp_compose_buf);
+	if ((LED_ON_STAT == LD_15_Stat())){
+		plen=fill_tcp_data_p(buf,plen,(OFF_15_STR));
+	}else{
+		plen=fill_tcp_data_p(buf,plen,(ON_15_STR));
+	}
+	plen=fill_tcp_data_p(buf,plen,("\">Toggle</a>"));
+
+
+	//Refresh hypelink
 	plen=fill_tcp_data_p(buf,plen,("<p><a href=\""));
 	sprintf((char*)tmp_compose_buf, "http://%u.%u.%u.%u/",
 			g_ip_addr[0],g_ip_addr[1],g_ip_addr[2],g_ip_addr[3]);
@@ -295,6 +424,30 @@ void server_loop(void) {
 				} else if (0x0006 == cmd16) {
 					if(LED_OFF_STAT != LD_06_Stat()) {
 						LD_06_OFF();
+					}
+				} else if (0x0107 == cmd16)	{
+					if(LED_ON_STAT != LD_07_Stat()) {
+						LD_07_ON();
+					}
+				} else if (0x0007 == cmd16) {
+					if(LED_OFF_STAT != LD_07_Stat()) {
+						LD_07_OFF();
+					}
+				} else if (0x0114 == cmd16)	{
+					if(LED_ON_STAT != LD_14_Stat()) {
+						LD_14_ON();
+					}
+				} else if (0x0014 == cmd16) {
+					if(LED_OFF_STAT != LD_14_Stat()) {
+						LD_14_OFF();
+					}
+				} else if (0x0115 == cmd16)	{
+					if(LED_ON_STAT != LD_15_Stat()) {
+						LD_15_ON();
+					}
+				} else if (0x0015 == cmd16) {
+					if(LED_OFF_STAT != LD_15_Stat()) {
+						LD_15_OFF();
 					}
 				}
 				//Update Web Page Content
