@@ -121,7 +121,6 @@ int main(void){
 	/* Start UART channel */
 	XMC_UART_CH_Start(XMC_UART0_CH1);
 
-
 	spi_init();
 
 	// LEDs configuration (P1.2 and P1.3 are used for serial comm)
