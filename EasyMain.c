@@ -89,7 +89,25 @@ extern void interface_init(void);
 extern void protocol_init(void);
 extern void server_loop(void);
 
-volatile uint32_t g_sp_vals[3];
+volatile uint32_t g_sp_vals[7];
+volatile uint8_t* g_ptrs[3];
+
+extern void Heap_Bank1_Size(void);
+extern void Heap_Bank1_Start(void);
+extern void Heap_Bank1_End(void);
+
+static inline void test_alloca(uint8_t sp_in, uint8_t ptr_in) {
+	g_ptrs[ptr_in] = alloca(0x10);
+	__ASM volatile ("MRS %0, msp\n" : "=r" (g_sp_vals[sp_in]) );
+}
+
+static inline void test_malloc(uint8_t sp_in, uint8_t ptr_in) {
+	uint8_t* tmp_ptr;
+	g_ptrs[ptr_in] = tmp_ptr = malloc(0x10);
+	__ASM volatile ("MRS %0, msp\n" : "=r" (g_sp_vals[sp_in]) );
+	//Comment the free statement to leak heap
+	free(tmp_ptr);
+}
 
 int main(void){
 	__IO uint32_t tmpTick;
@@ -152,7 +170,7 @@ int main(void){
 	interface_init();
 	protocol_init();
 
-	server_loop();
+//	server_loop();
 
 	while(1){
 		HAL_Delay(2000);
@@ -232,12 +250,60 @@ int main(void){
 		//Part 8: Test SVC, MSR, MRS
 		printf("Part 8\n");
 		printf("ASM Test 29, Before SVC\n");
-		g_sp_vals[0]=__get_MSP();
-		//destroy the 8 byte alignment
-		//		__ASM volatile ("MSR msp, %0\n" : : "r" (g_sp_vals[0]-4) : "sp");
-//		__ASM volatile ("svc 1" : : : "memory");
-		g_sp_vals[2]=__get_MSP();
-		printf("sp vals.%08X %08X %08X\n\n", g_sp_vals[0], g_sp_vals[1], g_sp_vals[2]);
+
+	    printf("Heap Start:%08X, Heap End:%08X, Heap Size:%08X\n",
+	    		(uint32_t)Heap_Bank1_Start, (uint32_t)Heap_Bank1_End, (uint32_t)Heap_Bank1_Size);
+
+		printf("\n\nTest the alloca\n\n");
+		__ASM volatile ("MRS %0, msp\n" : "=r" (g_sp_vals[0]) );
+
+		test_alloca(1, 0);
+
+		__ASM volatile ("MRS %0, msp\n" : "=r" (g_sp_vals[2]) );
+
+		test_alloca(3, 1);
+
+		__ASM volatile ("MRS %0, msp\n" : "=r" (g_sp_vals[4]) );
+
+		test_alloca(5, 2);
+
+		__ASM volatile ("MRS %0, msp\n" : "=r" (g_sp_vals[6]) );
+
+		printf("sp vals.%08X [%08X] %08X [%08X] %08X [%08X] %08X\n",
+				g_sp_vals[0], g_sp_vals[1], g_sp_vals[2],
+				 g_sp_vals[3], g_sp_vals[4], g_sp_vals[5], g_sp_vals[6]);
+
+		printf("ptr vals.%08X %08X %08X \n",
+				g_ptrs[0], g_ptrs[1], g_ptrs[2]);
+
+		printf("\n\nTest the malloc\n\n");
+		__ASM volatile ("MRS %0, msp\n" : "=r" (g_sp_vals[0]) );
+
+		test_malloc(1, 0);
+
+		__ASM volatile ("MRS %0, msp\n" : "=r" (g_sp_vals[2]) );
+
+		test_malloc(3, 1);
+
+		__ASM volatile ("MRS %0, msp\n" : "=r" (g_sp_vals[4]) );
+
+		test_malloc(5, 2);
+
+		__ASM volatile ("MRS %0, msp\n" : "=r" (g_sp_vals[6]) );
+
+		printf("sp vals.%08X [%08X] %08X [%08X] %08X [%08X] %08X\n",
+				g_sp_vals[0], g_sp_vals[1], g_sp_vals[2],
+				 g_sp_vals[3], g_sp_vals[4], g_sp_vals[5], g_sp_vals[6]);
+
+		printf("ptr vals.%08X %08X %08X \n",
+				g_ptrs[0], g_ptrs[1], g_ptrs[2]);
+
+
+		if (__builtin_expect((g_ptrs[0] != 0), 1)) {
+		   printf("expect 1\n");
+		} else {
+		   printf("expect 0\n");
+		}
 		//		asm_svc_1(1000);
 		printf("After SVC\n");
 		//
@@ -250,55 +316,56 @@ int main(void){
 		//		printf("%08X\t%08X\n", p1, p2);
 		//
 		//bkpt when no debugger will cause hardfault
-		printf("Before A breakpoint\n");
-		__BKPT(10);
-		printf("After breakpoint\n");
+//		printf("Before A breakpoint\n");
+//		__BKPT(10);
+//		printf("After breakpoint\n");
 
 		//unaligned access
-		uint8_t tmpU8A[]={0x12, 0x34, 0x56, 0x78};
-		uint16_t* pU16 = (uint16_t*)&tmpU8A[0];
-		printf("%p %04X\n", pU16, *pU16);
-		pU16 = (uint16_t*)&tmpU8A[2];
-		printf("%p %04X\n", pU16, *pU16);
-
-		printf("Before Unaligned access\n");
-		pU16 = (uint16_t*)&tmpU8A[1];
-		printf("%p %04X\n", pU16, *pU16);
-		printf("After Unaligned access\n");
-
-		//• a system-generated bus error on a load or store
-		uint32_t* pU32_NonExist = 0x60000000;
-		printf("Before LDR non exist\n");
-		printf("%08X\t[%08X]\n", asm_ldr32(pU32_NonExist), *pU32_NonExist);
-		printf("After LDR non exist\n");
-		printf("Before STR non exist\n");
-		asm_str32(pU32_NonExist, 0x78904563);
-		printf("%08X\t[%08X]\n", 0x78904563, pU32_NonExist);
-		printf("After STR non exist\n");
-
-		//• execution of an instruction from an XN memory address
-		//• execution of an instruction when not in Thumb-State as a result of the T-bit being previously cleared to 0
-		printf("Before exe non exist\n");
-		asm_direct_jump_2(pU32_NonExist);
-		printf("After exe non exist\n");
-
-		printf("Before ram function\n");
-		TestFunct();
-		printf("After ram function\n");
-		//• execution of an Undefined instruction
-		uint32_t tmpU32 = ((uint32_t)TestFunct) - 1;
-		asm_str32(tmpU32, 0x78904563);
-		printf("%s\n", __func__);
-		__ISB();
-		__DSB();
-		__DMB();
-		tmpTick = g_Ticks;
-		while((tmpTick+100) > g_Ticks){
-			__NOP();
-		}
-		printf("Before ram function modified\n");
-		TestFunct();
-		printf("After ram function modified\n");
+//		uint8_t tmpU8A[]={0x12, 0x34, 0x56, 0x78};
+//		uint16_t* pU16 = (uint16_t*)&tmpU8A[0];
+//		printf("%p %04X\n", pU16, *pU16);
+//		pU16 = (uint16_t*)&tmpU8A[2];
+//		printf("%p %04X\n", pU16, *pU16);
+//
+//		printf("Before Unaligned access\n");
+//		pU16 = (uint16_t*)&tmpU8A[1];
+//		printf("%p %04X\n", pU16, *pU16);
+//		printf("After Unaligned access\n");
+//
+//		//• a system-generated bus error on a load or store
+//		uint32_t* pU32_NonExist = 0x60000000;
+//		printf("Before LDR non exist\n");
+//		printf("%08X\t[%08X]\n", asm_ldr32(pU32_NonExist), *pU32_NonExist);
+//		printf("After LDR non exist\n");
+//		printf("Before STR non exist\n");
+//		asm_str32(pU32_NonExist, 0x78904563);
+//		printf("%08X\t[%08X]\n", 0x78904563, pU32_NonExist);
+//		printf("After STR non exist\n");
+//
+//		//• execution of an instruction from an XN memory address
+//		//• execution of an instruction when not in Thumb-State as a result of the T-bit being previously cleared to 0
+//		printf("Before exe non exist\n");
+//		asm_direct_jump_2(pU32_NonExist);
+//		printf("After exe non exist\n");
+//
+//		printf("Before ram function\n");
+//		TestFunct();
+//		printf("After ram function\n");
+//		//• execution of an Undefined instruction
+//		uint32_t tmpU32 = ((uint32_t)TestFunct) - 1;
+//		asm_str32(tmpU32, 0x78904563);
+//		printf("%s\n", __func__);
+//		__ISB();
+//		__DSB();
+//		__DMB();
+//		tmpTick = g_Ticks;
+//		while((tmpTick+100) > g_Ticks){
+//			__NOP();
+//		}
+//		printf("Before ram function modified\n");
+//		TestFunct();
+//		printf("After ram function modified\n");
+//
 		//
 		//		tmpTick = g_Ticks;
 		//		while((tmpTick+2000) > g_Ticks){
