@@ -97,7 +97,8 @@ extern void Heap_Bank1_Start(void);
 extern void Heap_Bank1_End(void);
 
 static inline void test_alloca(uint8_t sp_in, uint8_t ptr_in) {
-	g_ptrs[ptr_in] = alloca(0x10);
+//	g_ptrs[ptr_in] = alloca(0x10);
+	g_ptrs[ptr_in] = alloca(0x10000);
 	__ASM volatile ("MRS %0, msp\n" : "=r" (g_sp_vals[sp_in]) );
 }
 
