@@ -96,9 +96,12 @@ extern void Heap_Bank1_Size(void);
 extern void Heap_Bank1_Start(void);
 extern void Heap_Bank1_End(void);
 
+extern void __initial_sp(void);
+extern void stack_size(void);
+
 static inline void test_alloca(uint8_t sp_in, uint8_t ptr_in) {
-//	g_ptrs[ptr_in] = alloca(0x10);
-	g_ptrs[ptr_in] = alloca(0x10000);
+	g_ptrs[ptr_in] = alloca(0x10);
+	//	g_ptrs[ptr_in] = alloca(0x10000);
 	__ASM volatile ("MRS %0, msp\n" : "=r" (g_sp_vals[sp_in]) );
 }
 
@@ -107,7 +110,39 @@ static inline void test_malloc(uint8_t sp_in, uint8_t ptr_in) {
 	g_ptrs[ptr_in] = tmp_ptr = malloc(0x10);
 	__ASM volatile ("MRS %0, msp\n" : "=r" (g_sp_vals[sp_in]) );
 	//Comment the free statement to leak heap
-	free(tmp_ptr);
+	//	free(tmp_ptr);
+}
+
+static void test_lt10(uint8_t input) {
+	if (input < 10) {
+		printf("LL\n");
+	} else {
+		printf("LG\n");
+	}
+}
+
+static void test_ge10(uint8_t input) {
+	if (input >= 10) {
+		printf("GG\n");
+	} else {
+		printf("GL\n");
+	}
+}
+
+static void test_expect_lt10(uint8_t input) {
+	if (__builtin_expect((input < 10), 1)) {
+		printf("LLT\n");
+	} else {
+		printf("LGE\n");
+	}
+}
+
+static void test_expect_ge10(uint8_t input) {
+	if (__builtin_expect((input >= 10), 1)) {
+		printf("GGE\n");
+	} else {
+		printf("GLT\n");
+	}
 }
 
 int main(void){
@@ -116,13 +151,13 @@ int main(void){
 	__IO int32_t tmpL;
 	__IO uint32_t deltaTick;
 
-//	// Clock configuration
-//	XMC_SCU_CLOCK_CONFIG_t clock_config = {
-//			.rtc_src = XMC_SCU_CLOCK_RTCCLKSRC_DCO2,
-//			.pclk_src =	XMC_SCU_CLOCK_PCLKSRC_DOUBLE_MCLK,
-//			.fdiv = 0,
-//			.idiv = 1 };
-//	XMC_SCU_CLOCK_Init(&clock_config);
+	//	// Clock configuration
+	//	XMC_SCU_CLOCK_CONFIG_t clock_config = {
+	//			.rtc_src = XMC_SCU_CLOCK_RTCCLKSRC_DCO2,
+	//			.pclk_src =	XMC_SCU_CLOCK_PCLKSRC_DOUBLE_MCLK,
+	//			.fdiv = 0,
+	//			.idiv = 1 };
+	//	XMC_SCU_CLOCK_Init(&clock_config);
 
 	// System Timer initialization
 	SysTick_Config(SystemCoreClock / 1000);
@@ -171,7 +206,7 @@ int main(void){
 	interface_init();
 	protocol_init();
 
-//	server_loop();
+	//	server_loop();
 
 	while(1){
 		HAL_Delay(2000);
@@ -252,59 +287,18 @@ int main(void){
 		printf("Part 8\n");
 		printf("ASM Test 29, Before SVC\n");
 
-	    printf("Heap Start:%08X, Heap End:%08X, Heap Size:%08X\n",
-	    		(uint32_t)Heap_Bank1_Start, (uint32_t)Heap_Bank1_End, (uint32_t)Heap_Bank1_Size);
+		printf("Heap Start:%08X, Heap End:%08X, Heap Size:%08X\n",
+				(uint32_t)Heap_Bank1_Start, (uint32_t)Heap_Bank1_End, (uint32_t)Heap_Bank1_Size);
 
-		printf("\n\nTest the alloca\n\n");
-		__ASM volatile ("MRS %0, msp\n" : "=r" (g_sp_vals[0]) );
+		printf("sp init:%08X, stack Size:%08X\n",
+				(uint32_t)__initial_sp, (uint32_t)stack_size);
 
-		test_alloca(1, 0);
+		test_lt10(3);
+		test_expect_lt10(13);
 
-		__ASM volatile ("MRS %0, msp\n" : "=r" (g_sp_vals[2]) );
+		test_ge10(4);
+		test_expect_ge10(14);
 
-		test_alloca(3, 1);
-
-		__ASM volatile ("MRS %0, msp\n" : "=r" (g_sp_vals[4]) );
-
-		test_alloca(5, 2);
-
-		__ASM volatile ("MRS %0, msp\n" : "=r" (g_sp_vals[6]) );
-
-		printf("sp vals.%08X [%08X] %08X [%08X] %08X [%08X] %08X\n",
-				g_sp_vals[0], g_sp_vals[1], g_sp_vals[2],
-				 g_sp_vals[3], g_sp_vals[4], g_sp_vals[5], g_sp_vals[6]);
-
-		printf("ptr vals.%08X %08X %08X \n",
-				g_ptrs[0], g_ptrs[1], g_ptrs[2]);
-
-		printf("\n\nTest the malloc\n\n");
-		__ASM volatile ("MRS %0, msp\n" : "=r" (g_sp_vals[0]) );
-
-		test_malloc(1, 0);
-
-		__ASM volatile ("MRS %0, msp\n" : "=r" (g_sp_vals[2]) );
-
-		test_malloc(3, 1);
-
-		__ASM volatile ("MRS %0, msp\n" : "=r" (g_sp_vals[4]) );
-
-		test_malloc(5, 2);
-
-		__ASM volatile ("MRS %0, msp\n" : "=r" (g_sp_vals[6]) );
-
-		printf("sp vals.%08X [%08X] %08X [%08X] %08X [%08X] %08X\n",
-				g_sp_vals[0], g_sp_vals[1], g_sp_vals[2],
-				 g_sp_vals[3], g_sp_vals[4], g_sp_vals[5], g_sp_vals[6]);
-
-		printf("ptr vals.%08X %08X %08X \n",
-				g_ptrs[0], g_ptrs[1], g_ptrs[2]);
-
-
-		if (__builtin_expect((g_ptrs[0] != 0), 1)) {
-		   printf("expect 1\n");
-		} else {
-		   printf("expect 0\n");
-		}
 		//		asm_svc_1(1000);
 		printf("After SVC\n");
 		//
@@ -317,56 +311,56 @@ int main(void){
 		//		printf("%08X\t%08X\n", p1, p2);
 		//
 		//bkpt when no debugger will cause hardfault
-//		printf("Before A breakpoint\n");
-//		__BKPT(10);
-//		printf("After breakpoint\n");
+		//		printf("Before A breakpoint\n");
+		//		__BKPT(10);
+		//		printf("After breakpoint\n");
 
 		//unaligned access
-//		uint8_t tmpU8A[]={0x12, 0x34, 0x56, 0x78};
-//		uint16_t* pU16 = (uint16_t*)&tmpU8A[0];
-//		printf("%p %04X\n", pU16, *pU16);
-//		pU16 = (uint16_t*)&tmpU8A[2];
-//		printf("%p %04X\n", pU16, *pU16);
-//
-//		printf("Before Unaligned access\n");
-//		pU16 = (uint16_t*)&tmpU8A[1];
-//		printf("%p %04X\n", pU16, *pU16);
-//		printf("After Unaligned access\n");
-//
-//		//• a system-generated bus error on a load or store
-//		uint32_t* pU32_NonExist = 0x60000000;
-//		printf("Before LDR non exist\n");
-//		printf("%08X\t[%08X]\n", asm_ldr32(pU32_NonExist), *pU32_NonExist);
-//		printf("After LDR non exist\n");
-//		printf("Before STR non exist\n");
-//		asm_str32(pU32_NonExist, 0x78904563);
-//		printf("%08X\t[%08X]\n", 0x78904563, pU32_NonExist);
-//		printf("After STR non exist\n");
-//
-//		//• execution of an instruction from an XN memory address
-//		//• execution of an instruction when not in Thumb-State as a result of the T-bit being previously cleared to 0
-//		printf("Before exe non exist\n");
-//		asm_direct_jump_2(pU32_NonExist);
-//		printf("After exe non exist\n");
-//
-//		printf("Before ram function\n");
-//		TestFunct();
-//		printf("After ram function\n");
-//		//• execution of an Undefined instruction
-//		uint32_t tmpU32 = ((uint32_t)TestFunct) - 1;
-//		asm_str32(tmpU32, 0x78904563);
-//		printf("%s\n", __func__);
-//		__ISB();
-//		__DSB();
-//		__DMB();
-//		tmpTick = g_Ticks;
-//		while((tmpTick+100) > g_Ticks){
-//			__NOP();
-//		}
-//		printf("Before ram function modified\n");
-//		TestFunct();
-//		printf("After ram function modified\n");
-//
+		//		uint8_t tmpU8A[]={0x12, 0x34, 0x56, 0x78};
+		//		uint16_t* pU16 = (uint16_t*)&tmpU8A[0];
+		//		printf("%p %04X\n", pU16, *pU16);
+		//		pU16 = (uint16_t*)&tmpU8A[2];
+		//		printf("%p %04X\n", pU16, *pU16);
+		//
+		//		printf("Before Unaligned access\n");
+		//		pU16 = (uint16_t*)&tmpU8A[1];
+		//		printf("%p %04X\n", pU16, *pU16);
+		//		printf("After Unaligned access\n");
+		//
+		//		//• a system-generated bus error on a load or store
+		//		uint32_t* pU32_NonExist = 0x60000000;
+		//		printf("Before LDR non exist\n");
+		//		printf("%08X\t[%08X]\n", asm_ldr32(pU32_NonExist), *pU32_NonExist);
+		//		printf("After LDR non exist\n");
+		//		printf("Before STR non exist\n");
+		//		asm_str32(pU32_NonExist, 0x78904563);
+		//		printf("%08X\t[%08X]\n", 0x78904563, pU32_NonExist);
+		//		printf("After STR non exist\n");
+		//
+		//		//• execution of an instruction from an XN memory address
+		//		//• execution of an instruction when not in Thumb-State as a result of the T-bit being previously cleared to 0
+		//		printf("Before exe non exist\n");
+		//		asm_direct_jump_2(pU32_NonExist);
+		//		printf("After exe non exist\n");
+		//
+		//		printf("Before ram function\n");
+		//		TestFunct();
+		//		printf("After ram function\n");
+		//		//• execution of an Undefined instruction
+		//		uint32_t tmpU32 = ((uint32_t)TestFunct) - 1;
+		//		asm_str32(tmpU32, 0x78904563);
+		//		printf("%s\n", __func__);
+		//		__ISB();
+		//		__DSB();
+		//		__DMB();
+		//		tmpTick = g_Ticks;
+		//		while((tmpTick+100) > g_Ticks){
+		//			__NOP();
+		//		}
+		//		printf("Before ram function modified\n");
+		//		TestFunct();
+		//		printf("After ram function modified\n");
+		//
 		//
 		//		tmpTick = g_Ticks;
 		//		while((tmpTick+2000) > g_Ticks){
