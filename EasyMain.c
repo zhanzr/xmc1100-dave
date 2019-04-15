@@ -172,6 +172,8 @@ int main(void){
 	XMC_UART_CH_Init(XMC_UART0_CH1, &uart_config);
 	XMC_UART_CH_SetInputSource(XMC_UART0_CH1, XMC_UART_CH_INPUT_RXD,
 			USIC0_C1_DX0_P1_3);
+	XMC_UART_CH_EnableEvent(XMC_UART0_CH1, XMC_UART_CH_EVENT_STANDARD_RECEIVE);
+
 	/* Start UART channel */
 	XMC_UART_CH_Start(XMC_UART0_CH1);
 
