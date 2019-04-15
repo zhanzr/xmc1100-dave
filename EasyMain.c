@@ -33,6 +33,7 @@
 #include <stdfix.h>
 #include <math.h>
 #include <complex.h>
+#include <setjmp.h>
 
 #include <XMC1100.h>
 #include <xmc_scu.h>
@@ -80,6 +81,23 @@ int _write(int file, char *data, int len) {
 	return len;
 }
 
+volatile uint32_t g_sp_vals[7];
+volatile uint8_t* g_ptrs[3];
+
+static jmp_buf g_jmp_buf;
+
+void second(void) {
+	__ASM volatile ("MRS %0, msp\n" : "=r" (g_sp_vals[3]) );
+    printf("second\n");         // prints
+    longjmp(g_jmp_buf,1);             // jumps back to where setjmp was called - making setjmp now return 1
+}
+
+void first(void) {
+	__ASM volatile ("MRS %0, msp\n" : "=r" (g_sp_vals[2]) );
+    second();
+    printf("first\n");          // does not print
+}
+
 void __attribute__((section(".ram_code"))) TestFunct(void){
 	printf("%08X %s\n", TestFunct, __func__);
 	printf("CPUID:%08X\n", SCB->CPUID);
@@ -88,9 +106,6 @@ void __attribute__((section(".ram_code"))) TestFunct(void){
 extern void interface_init(void);
 extern void protocol_init(void);
 extern void server_loop(void);
-
-volatile uint32_t g_sp_vals[7];
-volatile uint8_t* g_ptrs[3];
 
 extern void Heap_Bank1_Size(void);
 extern void Heap_Bank1_Start(void);
@@ -289,17 +304,31 @@ int main(void){
 		printf("Part 8\n");
 		printf("ASM Test 29, Before SVC\n");
 
+//		test_lt10(3);
+//		test_expect_lt10(13);
+//
+//		test_ge10(4);
+//		test_expect_ge10(14);
+
+		__ASM volatile ("MRS %0, msp\n" : "=r" (g_sp_vals[0]) );
+	    if (!setjmp(g_jmp_buf)) {
+	    	__ASM volatile ("MRS %0, msp\n" : "=r" (g_sp_vals[1]) );
+	        first();                // when executed, setjmp returned 0
+	    } else {                       // when longjmp jumps back, setjmp returns 1
+	    	__ASM volatile ("MRS %0, msp\n" : "=r" (g_sp_vals[4]) );
+	    	printf("main\n");       // prints
+	    }
+		__ASM volatile ("MRS %0, msp\n" : "=r" (g_sp_vals[5]) );
+
+		printf("MSP vals: %08X %08X %08X %08X %08X %08X\n",
+				(uint32_t)g_sp_vals[0], (uint32_t)g_sp_vals[1], (uint32_t)g_sp_vals[2],
+				(uint32_t)g_sp_vals[3], (uint32_t)g_sp_vals[4], (uint32_t)g_sp_vals[5]);
+
 		printf("Heap Start:%08X, Heap End:%08X, Heap Size:%08X\n",
 				(uint32_t)Heap_Bank1_Start, (uint32_t)Heap_Bank1_End, (uint32_t)Heap_Bank1_Size);
 
 		printf("sp init:%08X, stack Size:%08X\n",
 				(uint32_t)__initial_sp, (uint32_t)stack_size);
-
-		test_lt10(3);
-		test_expect_lt10(13);
-
-		test_ge10(4);
-		test_expect_ge10(14);
 
 		//		asm_svc_1(1000);
 		printf("After SVC\n");
