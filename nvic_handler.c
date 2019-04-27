@@ -20,12 +20,13 @@ static void delay(uint32_t cycles)
   }
 }
 
-void HardFault_Handler(void){
-	printf("%s\n", __func__);
-	__ISB();
-	__DSB();
-	__DMB();
-	delay(1000);
+void HardFault_Handler(uint32_t lr, uint32_t msp, uint32_t psp){
+	__ASM volatile ("nop");
+//	printf("%s\n", __func__);
+//	__ISB();
+//	__DSB();
+//	__DMB();
+//	delay(1000);
 
 //	while(1){
 //		;

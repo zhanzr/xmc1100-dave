@@ -329,15 +329,26 @@ Default_handler:
     
     .globl HardFault_Veneer
 HardFault_Veneer:
-    LDR R0, =HardFault_Handler
-    MOV PC,R0
-    .long 0
-    .long 0
-    .long 0
-    .long 0
-    .long 0
-    .long 0
-    .long 0
+                MOV     R0, LR
+                MRS     R1, MSP
+                MRS     R2, PSP
+                LDR     R3, =HardFault_Handler
+                BLX     R3
+                BX      R0
+                    .long 0
+                    .long 0
+                    .long 0
+                    .long 0
+
+@    LDR R0, =HardFault_Handler
+@    MOV PC,R0
+@    .long 0
+@    .long 0
+@    .long 0
+@    .long 0
+@    .long 0
+@    .long 0
+@    .long 0
     
 /* ======================================================================== */
     .globl SVC_Veneer

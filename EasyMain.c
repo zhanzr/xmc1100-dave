@@ -255,57 +255,7 @@ int main(void){
 	    printf("Heap Start:%08X, Heap End:%08X, Heap Size:%08X\n",
 	    		(uint32_t)Heap_Bank1_Start, (uint32_t)Heap_Bank1_End, (uint32_t)Heap_Bank1_Size);
 
-		printf("\n\nTest the alloca\n\n");
-		__ASM volatile ("MRS %0, msp\n" : "=r" (g_sp_vals[0]) );
-
-		test_alloca(1, 0);
-
-		__ASM volatile ("MRS %0, msp\n" : "=r" (g_sp_vals[2]) );
-
-		test_alloca(3, 1);
-
-		__ASM volatile ("MRS %0, msp\n" : "=r" (g_sp_vals[4]) );
-
-		test_alloca(5, 2);
-
-		__ASM volatile ("MRS %0, msp\n" : "=r" (g_sp_vals[6]) );
-
-		printf("sp vals.%08X [%08X] %08X [%08X] %08X [%08X] %08X\n",
-				g_sp_vals[0], g_sp_vals[1], g_sp_vals[2],
-				 g_sp_vals[3], g_sp_vals[4], g_sp_vals[5], g_sp_vals[6]);
-
-		printf("ptr vals.%08X %08X %08X \n",
-				g_ptrs[0], g_ptrs[1], g_ptrs[2]);
-
-		printf("\n\nTest the malloc\n\n");
-		__ASM volatile ("MRS %0, msp\n" : "=r" (g_sp_vals[0]) );
-
-		test_malloc(1, 0);
-
-		__ASM volatile ("MRS %0, msp\n" : "=r" (g_sp_vals[2]) );
-
-		test_malloc(3, 1);
-
-		__ASM volatile ("MRS %0, msp\n" : "=r" (g_sp_vals[4]) );
-
-		test_malloc(5, 2);
-
-		__ASM volatile ("MRS %0, msp\n" : "=r" (g_sp_vals[6]) );
-
-		printf("sp vals.%08X [%08X] %08X [%08X] %08X [%08X] %08X\n",
-				g_sp_vals[0], g_sp_vals[1], g_sp_vals[2],
-				 g_sp_vals[3], g_sp_vals[4], g_sp_vals[5], g_sp_vals[6]);
-
-		printf("ptr vals.%08X %08X %08X \n",
-				g_ptrs[0], g_ptrs[1], g_ptrs[2]);
-
-
-		if (__builtin_expect((g_ptrs[0] != 0), 1)) {
-		   printf("expect 1\n");
-		} else {
-		   printf("expect 0\n");
-		}
-		//		asm_svc_1(1000);
+		__ASM volatile ("svc 0" : : : "memory");
 		printf("After SVC\n");
 		//
 		//		printf("ASM Test 30 Result:%08X\n", asm_test_mrs());
