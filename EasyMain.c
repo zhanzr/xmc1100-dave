@@ -196,9 +196,7 @@ void Reset_Handler(void) {
 	uint32_t* dest_ptr = (uint32_t*)VeneerStart;
 	uint32_t* dest_end = (uint32_t*)VeneerEnd;
 	while(dest_ptr != dest_end) {
-		*dest_ptr = *src;
-		dest_ptr ++;
-		src ++;
+		*dest_ptr++ = *src++;
 	}
 
 	SystemInit();
@@ -208,9 +206,7 @@ void Reset_Handler(void) {
 	dest_ptr = (uint32_t*)__data_start;
 	dest_end = (uint32_t*)__data_end;
 	while(dest_ptr != dest_end) {
-		*dest_ptr = *src;
-		dest_ptr ++;
-		src ++;
+		*dest_ptr++ = *src++;
 	}
 
 	//RAM code copy
@@ -218,9 +214,7 @@ void Reset_Handler(void) {
 	dest_ptr = (uint32_t*)__ram_code_start;
 	dest_end = (uint32_t*)__ram_code_end;
 	while(dest_ptr != dest_end) {
-		*dest_ptr = *src;
-		dest_ptr ++;
-		src ++;
+		*dest_ptr++ = *src++;
 	}
 
 
@@ -232,8 +226,7 @@ void Reset_Handler(void) {
 	dest_ptr = (uint32_t*)__bss_start;
 	dest_end = (uint32_t*)__bss_end;
 	while(dest_ptr != dest_end) {
-		*dest_ptr = 0;
-		dest_ptr ++;
+		*dest_ptr++ = 0;
 	}
 #endif /* __SKIP_BSS_CLEAR */
 
@@ -395,10 +388,10 @@ int main(void){
 		printf("VeneerStart:%08X\n", (uint32_t)VeneerStart);
 		printf("VeneerEnd:%08X\n", (uint32_t)VeneerEnd);
 		printf("VeneerSize:%08X\n", (uint32_t)VeneerSize);
-		printf("HardFault_Veneer:%08X\n", (uint32_t)HardFault_Veneer);
-		printf("HardFault_Handler:%08X\n", (uint32_t)HardFault_Handler);
-		printf("SysTick_Veneer:%08X\n", (uint32_t)SysTick_Veneer);
-		printf("SysTick_Handler:%08X\n", (uint32_t)SysTick_Handler);
+		printf("DataLoadAddr:%08X\n", (uint32_t)DataLoadAddr);
+		printf("__ram_code_load:%08X\n", (uint32_t)__ram_code_load);
+		printf("__ram_code_start:%08X\n", (uint32_t)__ram_code_start);
+		printf("__ram_code_end:%08X\n", (uint32_t)__ram_code_end);
 
 		__ASM volatile ("svc 0" : : : "memory");
 		printf("After SVC\n");
