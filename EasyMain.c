@@ -98,6 +98,17 @@ extern void Heap_Bank1_End(void);
 
 extern void __Vectors(void);
 extern void eROData(void);
+extern void DataLoadAddr(void);
+extern void __data_start(void);
+extern void __data_end(void);
+
+extern void __ram_code_load(void);
+extern void __ram_code_start(void);
+extern void __ram_code_end(void);
+
+extern void __bss_start(void);
+extern void __bss_end(void);
+
 extern void VeneerStart(void);
 extern void VeneerEnd(void);
 extern void VeneerSize(void);
@@ -108,7 +119,7 @@ extern void SysTick_Veneer(void);
 extern void SysTick_Handler(void);
 
 static inline void test_alloca(uint8_t sp_in, uint8_t ptr_in) {
-//	g_ptrs[ptr_in] = alloca(0x10);
+	//	g_ptrs[ptr_in] = alloca(0x10);
 	g_ptrs[ptr_in] = alloca(0x10000);
 	__ASM volatile ("MRS %0, msp\n" : "=r" (g_sp_vals[sp_in]) );
 }
@@ -121,19 +132,132 @@ static inline void test_malloc(uint8_t sp_in, uint8_t ptr_in) {
 	free(tmp_ptr);
 }
 
+//
+///* Reset Handler */
+//    .thumb_func
+//    .globl  Reset_Handler
+//    .type   Reset_Handler, %function
+//Reset_Handler:
+///* Initialize interrupt veneer */
+//	ldr	r1, =eROData
+//	ldr	r2, =VeneerStart
+//	ldr	r3, =VeneerEnd
+//	bl  __copy_data
+//
+//    ldr  r0, =SystemInit
+//    blx  r0
+//
+///* Initialize data */
+//	ldr	r1, =DataLoadAddr
+//	ldr	r2, =__data_start
+//	ldr	r3, =__data_end
+//	bl  __copy_data
+//
+///* RAM code */
+//	ldr	r1, =__ram_code_load
+//	ldr	r2, =__ram_code_start
+//	ldr	r3, =__ram_code_end
+//	bl  __copy_data
+//
+///*  Define __SKIP_BSS_CLEAR to disable zeroing uninitialzed data in startup.
+// *  The BSS section is specified by following symbols
+// *    __bss_start__: start of the BSS section.
+// *    __bss_end__: end of the BSS section.
+// *
+// *  Both addresses must be aligned to 4 bytes boundary.
+// */
+//#ifndef __SKIP_BSS_CLEAR
+//	ldr	r1, =__bss_start
+//	ldr	r2, =__bss_end
+//
+//	movs	r0, 0
+//
+//	subs	r2, r1
+//	ble	.L_loop3_done
+//
+//.L_loop3:
+//	subs	r2, #4
+//	str	r0, [r1, r2]
+//	bgt	.L_loop3
+//.L_loop3_done:
+//#endif /* __SKIP_BSS_CLEAR */
+//
+//#ifndef __SKIP_LIBC_INIT_ARRAY
+//    ldr  r0, =__libc_init_array
+//    blx  r0
+//#endif
+//
+//    ldr  r0, =main
+//    blx  r0
+
+void Reset_Handler(void) {
+	//Copy veneer
+	uint32_t* src = (uint32_t*)eROData;
+	uint32_t* dest_ptr = (uint32_t*)VeneerStart;
+	uint32_t* dest_end = (uint32_t*)VeneerEnd;
+	while(dest_ptr != dest_end) {
+		*dest_ptr = *src;
+		dest_ptr ++;
+		src ++;
+	}
+
+	SystemInit();
+
+	// Initialize data
+	src = (uint32_t*)DataLoadAddr;
+	dest_ptr = (uint32_t*)__data_start;
+	dest_end = (uint32_t*)__data_end;
+	while(dest_ptr != dest_end) {
+		*dest_ptr = *src;
+		dest_ptr ++;
+		src ++;
+	}
+
+	//RAM code copy
+	src = (uint32_t*)__ram_code_load;
+	dest_ptr = (uint32_t*)__ram_code_start;
+	dest_end = (uint32_t*)__ram_code_end;
+	while(dest_ptr != dest_end) {
+		*dest_ptr = *src;
+		dest_ptr ++;
+		src ++;
+	}
+
+
+	///*  Define __SKIP_BSS_CLEAR to disable zeroing uninitialzed data in startup.
+	// *  The BSS section is specified by following symbols
+	// *    __bss_start__: start of the BSS section.
+	// *    __bss_end__: end of the BSS section.
+#ifndef __SKIP_BSS_CLEAR
+	dest_ptr = (uint32_t*)__bss_start;
+	dest_end = (uint32_t*)__bss_end;
+	while(dest_ptr != dest_end) {
+		*dest_ptr = 0;
+		dest_ptr ++;
+	}
+#endif /* __SKIP_BSS_CLEAR */
+
+#ifndef __SKIP_LIBC_INIT_ARRAY
+	__libc_init_array();
+#endif
+
+	//Should never return
+	main();
+}
+
 int main(void){
 	__IO uint32_t tmpTick;
 	__IO int32_t tmpK;
 	__IO int32_t tmpL;
 	__IO uint32_t deltaTick;
 
-//	// Clock configuration
-//	XMC_SCU_CLOCK_CONFIG_t clock_config = {
-//			.rtc_src = XMC_SCU_CLOCK_RTCCLKSRC_DCO2,
-//			.pclk_src =	XMC_SCU_CLOCK_PCLKSRC_DOUBLE_MCLK,
-//			.fdiv = 0,
-//			.idiv = 1 };
-//	XMC_SCU_CLOCK_Init(&clock_config);
+	//	// Clock configuration
+	//	XMC_SCU_CLOCK_CONFIG_t clock_config = {
+	//			.rtc_src = XMC_SCU_CLOCK_RTCCLKSRC_DCO2,
+	//			.pclk_src =	XMC_SCU_CLOCK_PCLKSRC_DOUBLE_MCLK,
+	//			.fdiv = 0,
+	//			.idiv = 1 };
+	//	XMC_SCU_CLOCK_Init(&clock_config);
 
 	// System Timer initialization
 	SysTick_Config(SystemCoreClock / 1000);
@@ -182,7 +306,7 @@ int main(void){
 	interface_init();
 	protocol_init();
 
-//	server_loop();
+	//	server_loop();
 
 	while(1){
 		HAL_Delay(2000);
@@ -263,18 +387,18 @@ int main(void){
 		printf("Part 8\n");
 		printf("ASM Test 29, Before SVC\n");
 
-	    printf("Heap Start:%08X, Heap End:%08X, Heap Size:%08X\n",
-	    		(uint32_t)Heap_Bank1_Start, (uint32_t)Heap_Bank1_End, (uint32_t)Heap_Bank1_Size);
+		printf("Heap Start:%08X, Heap End:%08X, Heap Size:%08X\n",
+				(uint32_t)Heap_Bank1_Start, (uint32_t)Heap_Bank1_End, (uint32_t)Heap_Bank1_Size);
 
-	    printf("__Vectors:%08X\n", (uint32_t)__Vectors);
-	    printf("eROData:%08X\n", (uint32_t)eROData);
-	    printf("VeneerStart:%08X\n", (uint32_t)VeneerStart);
-	    printf("VeneerEnd:%08X\n", (uint32_t)VeneerEnd);
-	    printf("VeneerSize:%08X\n", (uint32_t)VeneerSize);
-	    printf("HardFault_Veneer:%08X\n", (uint32_t)HardFault_Veneer);
-	    printf("HardFault_Handler:%08X\n", (uint32_t)HardFault_Handler);
-	    printf("SysTick_Veneer:%08X\n", (uint32_t)SysTick_Veneer);
-	    printf("SysTick_Handler:%08X\n", (uint32_t)SysTick_Handler);
+		printf("__Vectors:%08X\n", (uint32_t)__Vectors);
+		printf("eROData:%08X\n", (uint32_t)eROData);
+		printf("VeneerStart:%08X\n", (uint32_t)VeneerStart);
+		printf("VeneerEnd:%08X\n", (uint32_t)VeneerEnd);
+		printf("VeneerSize:%08X\n", (uint32_t)VeneerSize);
+		printf("HardFault_Veneer:%08X\n", (uint32_t)HardFault_Veneer);
+		printf("HardFault_Handler:%08X\n", (uint32_t)HardFault_Handler);
+		printf("SysTick_Veneer:%08X\n", (uint32_t)SysTick_Veneer);
+		printf("SysTick_Handler:%08X\n", (uint32_t)SysTick_Handler);
 
 		__ASM volatile ("svc 0" : : : "memory");
 		printf("After SVC\n");
@@ -288,56 +412,56 @@ int main(void){
 		//		printf("%08X\t%08X\n", p1, p2);
 		//
 		//bkpt when no debugger will cause hardfault
-//		printf("Before A breakpoint\n");
-//		__BKPT(10);
-//		printf("After breakpoint\n");
+		//		printf("Before A breakpoint\n");
+		//		__BKPT(10);
+		//		printf("After breakpoint\n");
 
 		//unaligned access
-//		uint8_t tmpU8A[]={0x12, 0x34, 0x56, 0x78};
-//		uint16_t* pU16 = (uint16_t*)&tmpU8A[0];
-//		printf("%p %04X\n", pU16, *pU16);
-//		pU16 = (uint16_t*)&tmpU8A[2];
-//		printf("%p %04X\n", pU16, *pU16);
-//
-//		printf("Before Unaligned access\n");
-//		pU16 = (uint16_t*)&tmpU8A[1];
-//		printf("%p %04X\n", pU16, *pU16);
-//		printf("After Unaligned access\n");
-//
-//		//• a system-generated bus error on a load or store
-//		uint32_t* pU32_NonExist = 0x60000000;
-//		printf("Before LDR non exist\n");
-//		printf("%08X\t[%08X]\n", asm_ldr32(pU32_NonExist), *pU32_NonExist);
-//		printf("After LDR non exist\n");
-//		printf("Before STR non exist\n");
-//		asm_str32(pU32_NonExist, 0x78904563);
-//		printf("%08X\t[%08X]\n", 0x78904563, pU32_NonExist);
-//		printf("After STR non exist\n");
-//
-//		//• execution of an instruction from an XN memory address
-//		//• execution of an instruction when not in Thumb-State as a result of the T-bit being previously cleared to 0
-//		printf("Before exe non exist\n");
-//		asm_direct_jump_2(pU32_NonExist);
-//		printf("After exe non exist\n");
-//
-//		printf("Before ram function\n");
-//		TestFunct();
-//		printf("After ram function\n");
-//		//• execution of an Undefined instruction
-//		uint32_t tmpU32 = ((uint32_t)TestFunct) - 1;
-//		asm_str32(tmpU32, 0x78904563);
-//		printf("%s\n", __func__);
-//		__ISB();
-//		__DSB();
-//		__DMB();
-//		tmpTick = g_Ticks;
-//		while((tmpTick+100) > g_Ticks){
-//			__NOP();
-//		}
-//		printf("Before ram function modified\n");
-//		TestFunct();
-//		printf("After ram function modified\n");
-//
+		//		uint8_t tmpU8A[]={0x12, 0x34, 0x56, 0x78};
+		//		uint16_t* pU16 = (uint16_t*)&tmpU8A[0];
+		//		printf("%p %04X\n", pU16, *pU16);
+		//		pU16 = (uint16_t*)&tmpU8A[2];
+		//		printf("%p %04X\n", pU16, *pU16);
+		//
+		//		printf("Before Unaligned access\n");
+		//		pU16 = (uint16_t*)&tmpU8A[1];
+		//		printf("%p %04X\n", pU16, *pU16);
+		//		printf("After Unaligned access\n");
+		//
+		//		//• a system-generated bus error on a load or store
+		//		uint32_t* pU32_NonExist = 0x60000000;
+		//		printf("Before LDR non exist\n");
+		//		printf("%08X\t[%08X]\n", asm_ldr32(pU32_NonExist), *pU32_NonExist);
+		//		printf("After LDR non exist\n");
+		//		printf("Before STR non exist\n");
+		//		asm_str32(pU32_NonExist, 0x78904563);
+		//		printf("%08X\t[%08X]\n", 0x78904563, pU32_NonExist);
+		//		printf("After STR non exist\n");
+		//
+		//		//• execution of an instruction from an XN memory address
+		//		//• execution of an instruction when not in Thumb-State as a result of the T-bit being previously cleared to 0
+		//		printf("Before exe non exist\n");
+		//		asm_direct_jump_2(pU32_NonExist);
+		//		printf("After exe non exist\n");
+		//
+		//		printf("Before ram function\n");
+		//		TestFunct();
+		//		printf("After ram function\n");
+		//		//• execution of an Undefined instruction
+		//		uint32_t tmpU32 = ((uint32_t)TestFunct) - 1;
+		//		asm_str32(tmpU32, 0x78904563);
+		//		printf("%s\n", __func__);
+		//		__ISB();
+		//		__DSB();
+		//		__DMB();
+		//		tmpTick = g_Ticks;
+		//		while((tmpTick+100) > g_Ticks){
+		//			__NOP();
+		//		}
+		//		printf("Before ram function modified\n");
+		//		TestFunct();
+		//		printf("After ram function modified\n");
+		//
 		//
 		//		tmpTick = g_Ticks;
 		//		while((tmpTick+2000) > g_Ticks){
