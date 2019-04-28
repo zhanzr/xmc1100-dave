@@ -96,6 +96,17 @@ extern void Heap_Bank1_Size(void);
 extern void Heap_Bank1_Start(void);
 extern void Heap_Bank1_End(void);
 
+extern void __Vectors(void);
+extern void eROData(void);
+extern void VeneerStart(void);
+extern void VeneerEnd(void);
+extern void VeneerSize(void);
+
+extern void HardFault_Veneer(void);
+extern void HardFault_Handler(void);
+extern void SysTick_Veneer(void);
+extern void SysTick_Handler(void);
+
 static inline void test_alloca(uint8_t sp_in, uint8_t ptr_in) {
 //	g_ptrs[ptr_in] = alloca(0x10);
 	g_ptrs[ptr_in] = alloca(0x10000);
@@ -254,6 +265,16 @@ int main(void){
 
 	    printf("Heap Start:%08X, Heap End:%08X, Heap Size:%08X\n",
 	    		(uint32_t)Heap_Bank1_Start, (uint32_t)Heap_Bank1_End, (uint32_t)Heap_Bank1_Size);
+
+	    printf("__Vectors:%08X\n", (uint32_t)__Vectors);
+	    printf("eROData:%08X\n", (uint32_t)eROData);
+	    printf("VeneerStart:%08X\n", (uint32_t)VeneerStart);
+	    printf("VeneerEnd:%08X\n", (uint32_t)VeneerEnd);
+	    printf("VeneerSize:%08X\n", (uint32_t)VeneerSize);
+	    printf("HardFault_Veneer:%08X\n", (uint32_t)HardFault_Veneer);
+	    printf("HardFault_Handler:%08X\n", (uint32_t)HardFault_Handler);
+	    printf("SysTick_Veneer:%08X\n", (uint32_t)SysTick_Veneer);
+	    printf("SysTick_Handler:%08X\n", (uint32_t)SysTick_Handler);
 
 		__ASM volatile ("svc 0" : : : "memory");
 		printf("After SVC\n");

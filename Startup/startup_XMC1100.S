@@ -146,52 +146,6 @@ __Vectors:
     Entry   HardFault_Handler           /* Hard Fault Handler           */
     .long   CLKVAL1_SSW                 /* Reserved                     */
     .long   CLKVAL2_SSW                 /* Reserved                     */
-#ifdef RETAIN_VECTOR_TABLE
-    .long   0                           /* Reserved                     */
-    .long   0                           /* Reserved                     */
-    .long   0                           /* Reserved                     */
-    .long   0                           /* Reserved                     */
-    .long   0                           /* Reserved                     */
-    Entry   SVC_Handler                 /* SVCall Handler               */
-    .long   0                           /* Reserved                     */
-    .long   0                           /* Reserved                     */
-    Entry   PendSV_Handler              /* PendSV Handler               */
-    Entry   SysTick_Handler             /* SysTick Handler              */
-
-    /* Interrupt Handlers for Service Requests (SR) from XMC1100 Peripherals */
-    Entry   SCU_0_IRQHandler            /* Handler name for SR SCU_0     */
-    Entry   SCU_1_IRQHandler            /* Handler name for SR SCU_1     */
-    Entry   SCU_2_IRQHandler            /* Handler name for SR SCU_2     */
-    Entry   ERU0_0_IRQHandler           /* Handler name for SR ERU0_0    */
-    Entry   ERU0_1_IRQHandler           /* Handler name for SR ERU0_1    */
-    Entry   ERU0_2_IRQHandler           /* Handler name for SR ERU0_2    */
-    Entry   ERU0_3_IRQHandler           /* Handler name for SR ERU0_3    */
-    .long   0                           /* Not Available                 */
-    .long   0                           /* Not Available                 */
-    Entry   USIC0_0_IRQHandler          /* Handler name for SR USIC0_0   */
-    Entry   USIC0_1_IRQHandler          /* Handler name for SR USIC0_1   */
-    Entry   USIC0_2_IRQHandler          /* Handler name for SR USIC0_2   */
-    Entry   USIC0_3_IRQHandler          /* Handler name for SR USIC0_3   */
-    Entry   USIC0_4_IRQHandler          /* Handler name for SR USIC0_4   */
-    Entry   USIC0_5_IRQHandler          /* Handler name for SR USIC0_5   */
-    Entry   VADC0_C0_0_IRQHandler       /* Handler name for SR VADC0_C0_0  */
-    Entry   VADC0_C0_1_IRQHandler       /* Handler name for SR VADC0_C0_1  */
-    .long   0                           /* Not Available                 */
-    .long   0                           /* Not Available                 */
-    .long   0                           /* Not Available                 */
-    .long   0                           /* Not Available                 */
-    Entry   CCU40_0_IRQHandler          /* Handler name for SR CCU40_0   */
-    Entry   CCU40_1_IRQHandler          /* Handler name for SR CCU40_1   */
-    Entry   CCU40_2_IRQHandler          /* Handler name for SR CCU40_2   */
-    Entry   CCU40_3_IRQHandler          /* Handler name for SR CCU40_3   */
-    .long   0                           /* Not Available                 */
-    .long   0                           /* Not Available                 */
-    .long   0                           /* Not Available                 */
-    .long   0                           /* Not Available                 */
-    .long   0                           /* Not Available                 */
-    .long   0                           /* Not Available                 */
-    .long   0                           /* Not Available                 */
-#endif
 
     .size  __Vectors, . - __Vectors
 /* ================== END OF VECTOR TABLE DEFINITION ======================= */
@@ -339,16 +293,6 @@ HardFault_Veneer:
                     .long 0
                     .long 0
                     .long 0
-
-@    LDR R0, =HardFault_Handler
-@    MOV PC,R0
-@    .long 0
-@    .long 0
-@    .long 0
-@    .long 0
-@    .long 0
-@    .long 0
-@    .long 0
     
 /* ======================================================================== */
     .globl SVC_Veneer
