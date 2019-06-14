@@ -53,7 +53,7 @@ XMC_GPIO_CONFIG_t uart_rx;
 
 /* UART configuration */
 const XMC_UART_CH_CONFIG_t uart_config = { .data_bits = 8U, .stop_bits = 1U,
-		.baudrate = 256000 };
+		.baudrate = 921600 };
 
 __IO uint32_t g_Ticks;
 void HAL_Delay(uint32_t d){
@@ -238,6 +238,15 @@ void Reset_Handler(void) {
 	main();
 }
 
+int func(char *a){
+	char b[10];
+	char *p = &b[5];
+	printf("__builtin_object_size(a,0):%ld\n",__builtin_object_size(a,0));
+	printf("__builtin_object_size(b,0):%ld\n",__builtin_object_size(b,0));
+	printf("__builtin_object_size(p,0):%ld\n",__builtin_object_size(p,0));
+	return 0;
+}
+
 int main(void){
 	__IO uint32_t tmpTick;
 	__IO int32_t tmpK;
@@ -395,7 +404,37 @@ int main(void){
 
 		__ASM volatile ("svc 0" : : : "memory");
 		printf("After SVC\n");
-		//
+
+		{
+			struct V {
+				char buf1[10];
+				int b;
+				char buf2[10];
+			} var;
+			char* p = &var.buf1[1];
+			char*	q = (char*)&var.b;
+
+			printf("size check %i %i %i %i\n",
+					__builtin_object_size (p, 0),
+					__builtin_object_size (p, 1),
+					__builtin_object_size (q, 0),
+					__builtin_object_size (q, 1));
+
+			printf("malloc %p builtin_malloc %p\n",
+					malloc,
+					__builtin_malloc
+			);
+
+			printf("memcmp %p __builtin_bcmp %p\n",
+					memcmp,
+					__builtin_bcmp
+			);
+		}
+		{
+			char a[10];
+			func(a);
+		}
+
 		//		printf("ASM Test 30 Result:%08X\n", asm_test_mrs());
 		//		printf("ASM Test 31 Tick:%u\n", SysTick->VAL);
 		//		asm_test_msr(0x00000001);
