@@ -1,12 +1,12 @@
 /**
  * @file xmc_rtc.c
- * @date 2015-05-19
+ * @date 2018-06-21
  *
  * @cond
  *********************************************************************************************************************
- * XMClib v2.1.8 - XMC Peripheral Driver Library 
+ * XMClib v2.1.20 - XMC Peripheral Driver Library 
  *
- * Copyright (c) 2015-2016, Infineon Technologies AG
+ * Copyright (c) 2015-2018, Infineon Technologies AG
  * All rights reserved.                        
  *                                             
  * Redistribution and use in source and binary forms, with or without modification,are permitted provided that the 
@@ -45,6 +45,10 @@
  * 2016-05-19:
  *     - Added XMC_RTC_SetTimeStdFormat() and XMC_RTC_SetAlarmStdFormat()
  *
+ * 2018-06-21:
+ *     - Fixed value of XMC_RTC_MAXSECONDS, XMC_RTC_MAXMINUTES, XMC_RTC_MAXHOURS macros
+ *     - Fixed assertion on XMC_RTC_MAXDAYS
+ *
  * @endcond 
  *
  */
@@ -66,9 +70,9 @@
  * MACROS
  *********************************************************************************************************************/
 
-#define XMC_RTC_MAXSECONDS  (59U)   /**< RTC time : Maximum seconds */
-#define XMC_RTC_MAXMINUTES  (59U)   /**< RTC time : Maximum minutes */
-#define XMC_RTC_MAXHOURS    (23U)   /**< RTC time : Maximum hours */
+#define XMC_RTC_MAXSECONDS  (60U)   /**< RTC time : Maximum seconds */
+#define XMC_RTC_MAXMINUTES  (60U)   /**< RTC time : Maximum minutes */
+#define XMC_RTC_MAXHOURS    (24U)   /**< RTC time : Maximum hours */
 #define XMC_RTC_MAXDAYS     (31U)   /**< RTC time : Maximum days */
 #define XMC_RTC_MAXDAYSOFWEEK  (7U) /**< RTC time : Maximum days of week */
 #define XMC_RTC_MAXMONTH  (12U)     /**< RTC time : Maximum month */
@@ -134,7 +138,7 @@ void XMC_RTC_SetTime(const XMC_RTC_TIME_t *const time)
   XMC_ASSERT("XMC_RTC_SetTime:Wrong seconds value", ((uint32_t)time->seconds < XMC_RTC_MAXSECONDS));
   XMC_ASSERT("XMC_RTC_SetTime:Wrong minutes value", ((uint32_t)time->minutes < XMC_RTC_MAXMINUTES));
   XMC_ASSERT("XMC_RTC_SetTime:Wrong hours value", ((uint32_t)time->hours < XMC_RTC_MAXHOURS));
-  XMC_ASSERT("XMC_RTC_SetTime:Wrong month day value", ((uint32_t)time->days < XMC_RTC_MAXDAYS));
+  XMC_ASSERT("XMC_RTC_SetTime:Wrong month day value", ((uint32_t)time->days <= XMC_RTC_MAXDAYS));
   XMC_ASSERT("XMC_RTC_SetTime:Wrong week day value", ((uint32_t)time->daysofweek < XMC_RTC_MAXDAYSOFWEEK));
   XMC_ASSERT("XMC_RTC_SetTime:Wrong month value", ((uint32_t)time->month < XMC_RTC_MAXMONTH));
   XMC_ASSERT("XMC_RTC_SetTime:Wrong year value", ((uint32_t)time->year < XMC_RTC_MAXYEAR));
@@ -216,7 +220,7 @@ void XMC_RTC_SetAlarm(const XMC_RTC_ALARM_t *const alarm)
   XMC_ASSERT("XMC_RTC_SetAlarm:Wrong seconds value", ((uint32_t)alarm->seconds < XMC_RTC_MAXSECONDS));
   XMC_ASSERT("XMC_RTC_SetAlarm:Wrong minutes value", ((uint32_t)alarm->minutes < XMC_RTC_MAXMINUTES));
   XMC_ASSERT("XMC_RTC_SetAlarm:Wrong hours value", ((uint32_t)alarm->hours < XMC_RTC_MAXHOURS));
-  XMC_ASSERT("XMC_RTC_SetAlarm:Wrong days value", ((uint32_t)alarm->days < XMC_RTC_MAXDAYS));
+  XMC_ASSERT("XMC_RTC_SetAlarm:Wrong days value", ((uint32_t)alarm->days <= XMC_RTC_MAXDAYS));
   XMC_ASSERT("XMC_RTC_SetAlarm:Wrong month value", ((uint32_t)alarm->month < XMC_RTC_MAXMONTH));
   XMC_ASSERT("XMC_RTC_SetAlarm:Wrong year value", ((uint32_t)alarm->year < XMC_RTC_MAXYEAR));
 

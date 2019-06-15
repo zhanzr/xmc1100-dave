@@ -1,12 +1,12 @@
 /**
  * @file xmc_device.h
- * @date 2016-07-21
+ * @date 2018-07-30
  *
  * @cond
-  *********************************************************************************************************************
- * XMClib v2.1.8 - XMC Peripheral Driver Library
+ *********************************************************************************************************************
+ * XMClib v2.1.20 - XMC Peripheral Driver Library
  *
- * Copyright (c) 2015-2016, Infineon Technologies AG
+ * Copyright (c) 2015-2018, Infineon Technologies AG
  * All rights reserved.                        
  *                                             
  * Redistribution and use in source and binary forms, with or without modification,are permitted provided that the 
@@ -53,6 +53,10 @@
  *             XMC1302_T028x0016, XMC1402_T038x0032, XMC1402_T038x0064, XMC1402_T038x0128, 
  *             XMC1403_Q040x0064, XMC1403_Q040x0128, XMC1403_Q040x0200, XMC1402_T038x0200
  *             XMC1402_Q040x0200, XMC1402_Q048x0200, XMC1201_T028x0032
+ *
+ * 2018-07-30
+ *     - Added XMC1302_T028x0200, XMC1302_T028x0128, XMC1302_T028x0064, XMC1302_T028x0032 
+ *
  * @endcond 
  *
  */
@@ -1046,6 +1050,42 @@
 #define UC_DEVICE    XMC1302
 #define UC_PACKAGE   TSSOP38
 #define UC_FLASH     (200UL)
+#define CCU4V2
+#define CCU8V2
+
+#elif defined(XMC1302_T028x0200)
+#define UC_FAMILY    XMC1
+#define UC_SERIES    XMC13
+#define UC_DEVICE    XMC1302
+#define UC_PACKAGE   TSSOP28
+#define UC_FLASH     (200UL)
+#define CCU4V2
+#define CCU8V2
+
+#elif defined(XMC1302_T028x0128)
+#define UC_FAMILY    XMC1
+#define UC_SERIES    XMC13
+#define UC_DEVICE    XMC1302
+#define UC_PACKAGE   TSSOP28
+#define UC_FLASH     (128UL)
+#define CCU4V2
+#define CCU8V2
+
+#elif defined(XMC1302_T028x0064)
+#define UC_FAMILY    XMC1
+#define UC_SERIES    XMC13
+#define UC_DEVICE    XMC1302
+#define UC_PACKAGE   TSSOP28
+#define UC_FLASH     (64UL)
+#define CCU4V2
+#define CCU8V2
+
+#elif defined(XMC1302_T028x0032)
+#define UC_FAMILY    XMC1
+#define UC_SERIES    XMC13
+#define UC_DEVICE    XMC1302
+#define UC_PACKAGE   TSSOP28
+#define UC_FLASH     (32UL)
 #define CCU4V2
 #define CCU8V2
 

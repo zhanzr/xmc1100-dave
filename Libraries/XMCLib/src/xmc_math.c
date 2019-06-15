@@ -1,13 +1,13 @@
 
 /**
  * @file xmc_math.c
- * @date 2015-10-08
+ * @date 2018-08-08
  *
  * @cond
  **********************************************************************************
- * XMClib v2.1.8 - XMC Peripheral Driver Library 
+ * XMClib v2.1.20 - XMC Peripheral Driver Library 
  *
- * Copyright (c) 2015-2016, Infineon Technologies AG
+ * Copyright (c) 2015-2018, Infineon Technologies AG
  * All rights reserved.                        
  *                                             
  * Redistribution and use in source and binary forms, with or without           
@@ -54,13 +54,23 @@
  * 2015-10-08:
  *     - Return values for sin(), cos(), sinh(), cosh(), arctan() are corrected.
  *
+ * 2017-04-20:
+ *     - Foward declaration of __aeabi_* to fix link time optimization (-flto) compilation errors
+ * 
+ * 2017-11-30:
+ *     - Fixed reentrancy problems when using __aeabi_* functions (division ‘/’ and modulo ‘%’ C operators) which are active by default 
+ *       as long as XMC_MATH_DISABLE_DIV_ABI is not defined
+ * 
+ * 2018-08-08:
+ *     - Fixed compiler warnings for compiler others than GCC
+ *
  * @endcond
  *
  */
 
 /**
  *
- * @brief MATH driver - API implementation for XMC13 family MATH libraries. <br>
+ * @brief MATH driver - API implementation for XMC13/14 family MATH libraries. <br>
  * 
  * <b>Detailed description of file</b> <br>
  * APIs provided in this file cover the following functional blocks of MATH: <br>
@@ -104,6 +114,18 @@
 /*********************************************************************************************************************
  * API IMPLEMENTATION - Utility functions
  ********************************************************************************************************************/
+__attribute__((always_inline)) __STATIC_INLINE uint32_t critical_section_enter(void)
+{
+  uint32_t status;
+  status = __get_PRIMASK();
+  __disable_irq ();
+  return status;
+}
+
+__attribute__((always_inline)) __STATIC_INLINE void critical_section_exit(uint32_t status)
+{
+  __set_PRIMASK(status);
+}
 
 /* Utility function to check if the DIV unit is busy */
 bool XMC_MATH_DIV_IsBusy(void)
@@ -153,55 +175,97 @@ bool XMC_MATH_GetEventStatus(const XMC_MATH_EVENT_t event)
 }
 
 #ifndef XMC_MATH_DISABLE_DIV_ABI
+
+/* Forward prototypes.  */
+#if defined ( __GNUC__ )
+uint32_t __aeabi_uidiv(uint32_t dividend, uint32_t divisor) __attribute__((externally_visible));
+int32_t __aeabi_idiv(int32_t dividend, int32_t divisor) __attribute__((externally_visible));
+uint64_t __aeabi_uidivmod(uint32_t dividend, uint32_t divisor) __attribute__((externally_visible));
+int64_t __aeabi_idivmod(int32_t dividend, int32_t divisor) __attribute__((externally_visible));
+#else
+uint32_t __aeabi_uidiv(uint32_t dividend, uint32_t divisor);
+int32_t __aeabi_idiv(int32_t dividend, int32_t divisor);
+uint64_t __aeabi_uidivmod(uint32_t dividend, uint32_t divisor);
+int64_t __aeabi_idivmod(int32_t dividend, int32_t divisor);
+#endif
+
 /***********************************************************************************************************************
  * API IMPLEMENTATION - aeabi routines
  **********************************************************************************************************************/
 /* This function performs unsigned integer division */
 uint32_t __aeabi_uidiv(uint32_t dividend, uint32_t divisor)
 {
+  uint32_t result;
+  uint32_t ics;
+  ics = critical_section_enter();
+
   MATH->DIVCON  = XMC_MATH_UNSIGNED_DIVISION;
   MATH->DVD     = dividend;
   MATH->DVS     = divisor;
 
-  return ((uint32_t) MATH->QUOT);
+  result = MATH->QUOT;
+
+  critical_section_exit(ics);
+
+  return result;
 }
 
 /* This function performs signed integer division */
 int32_t __aeabi_idiv(int32_t dividend, int32_t divisor)
 {
+  uint32_t result;
+  uint32_t ics;
+  ics = critical_section_enter();
+
   MATH->DIVCON  = XMC_MATH_SIGNED_DIVISION;
   MATH->DVD     = dividend;
   MATH->DVS     = divisor;
 
-  return ((int32_t) MATH->QUOT);
+  result = MATH->QUOT;
+
+  critical_section_exit(ics);
+  
+  return result;
 }
 
 /* This function performs unsigned integer division modulo */
 uint64_t __aeabi_uidivmod(uint32_t dividend, uint32_t divisor)
 {
   uint64_t remainder;
-
+  uint64_t quot;
+  uint32_t ics;
+  ics = critical_section_enter();
+  
   MATH->DIVCON  = XMC_MATH_UNSIGNED_DIVISION;
   MATH->DVD     = dividend;
   MATH->DVS     = divisor;
 
-  remainder = ((uint64_t) MATH->RMD) << 32U;
-  return (remainder | MATH->QUOT);
+  remainder = (uint64_t)MATH->RMD;
+  quot = (uint64_t)MATH->QUOT;
+
+  critical_section_exit(ics);
+
+  return ((remainder << 32) | quot);
 }
 
 /* This function performs signed integer division modulo */
 int64_t __aeabi_idivmod(int32_t dividend, int32_t divisor)
 {
   uint64_t remainder;
-  uint64_t result;
-
+  uint64_t quot;
+  uint32_t ics;
+  ics = critical_section_enter();
+  
   MATH->DIVCON  = XMC_MATH_SIGNED_DIVISION;
   MATH->DVD     = dividend;
   MATH->DVS     = divisor;
 
-  remainder = ((uint64_t) MATH->RMD) << 32U;
-  result    = (remainder | MATH->QUOT);
-  return ((int64_t) result);
+  remainder = (uint64_t)MATH->RMD;;
+  quot    = (uint64_t)MATH->QUOT;
+
+  critical_section_exit(ics);
+
+  return ((int64_t)((remainder << 32) | quot));
 }
 #endif
 

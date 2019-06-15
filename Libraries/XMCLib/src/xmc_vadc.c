@@ -1,12 +1,12 @@
 /**
  * @file xmc_vadc.c
- * @date 2016-06-17
+ * @date 2018-06-26
  *
  * @cond
-*********************************************************************************************************************
- * XMClib v2.1.8 - XMC Peripheral Driver Library 
+ *********************************************************************************************************************
+ * XMClib v2.1.20 - XMC Peripheral Driver Library 
  *
- * Copyright (c) 2015-2016, Infineon Technologies AG
+ * Copyright (c) 2015-2018, Infineon Technologies AG
  * All rights reserved.                        
  *                                             
  * Redistribution and use in source and binary forms, with or without modification,are permitted provided that the 
@@ -85,6 +85,13 @@
  *           - XMC_VADC_GROUP_SetSyncReadySignal
  *           - XMC_VADC_GROUP_GetSyncReadySignal
  *           - XMC_VADC_GROUP_GetResultRegPriority
+ *
+ * 2017-01-11:
+ *     - Fix assertion in XMC_VADC_GROUP_CheckSlaveReadiness() and XMC_VADC_GROUP_IgnoreSlaveReadiness() checking the slave_group parameter
+ *
+ * 2018-06-26:
+ *     - Fixed XMC_VADC_GLOBAL_StartupCalibration(), added wait until calibration is started
+ *
  * @endcond 
  *
  */
@@ -274,16 +281,23 @@ void XMC_VADC_GLOBAL_StartupCalibration(XMC_VADC_GLOBAL_t *const global_ptr)
       /* This group is active. Loop until it finishes calibration */
       while((group_ptr->ARBCFG) & (uint32_t)VADC_G_ARBCFG_CAL_Msk)
       {
-        /* NOP */
+        __NOP();
       }
     }
   }
 #else
+
+  /* Loop until calibration is started */
+  while ((((SHS0->SHSCFG) & (uint32_t)SHS_SHSCFG_STATE_Msk) >> (uint32_t)SHS_SHSCFG_STATE_Pos) !=
+		  XMC_VADC_SHS_START_UP_CAL_ACTIVE  )
+   {
+     __NOP();
+   }
   /* Loop until it finishes calibration */
   while ((((SHS0->SHSCFG) & (uint32_t)SHS_SHSCFG_STATE_Msk) >> (uint32_t)SHS_SHSCFG_STATE_Pos) ==
          XMC_VADC_SHS_START_UP_CAL_ACTIVE )
   {
-    /* NOP */
+    __NOP();
   }
 #endif
 }
@@ -569,6 +583,7 @@ void XMC_VADC_GROUP_CheckSlaveReadiness(XMC_VADC_GROUP_t *const group_ptr, uint3
 {
   uint32_t i,master_grp_num;
   XMC_ASSERT("XMC_VADC_GROUP_CheckSlaveReadiness:Wrong Group Pointer", XMC_VADC_CHECK_GROUP_PTR(group_ptr))
+  XMC_ASSERT("XMC_VADC_GROUP_CheckSlaveReadiness:Wrong Slave group", ((slave_group >= 0) && (slave_group <= (XMC_VADC_MAXIMUM_NUM_GROUPS - 1))))
 
   master_grp_num =0;
   for(i=0; i<XMC_VADC_MAXIMUM_NUM_GROUPS; i++)
@@ -579,7 +594,6 @@ void XMC_VADC_GROUP_CheckSlaveReadiness(XMC_VADC_GROUP_t *const group_ptr, uint3
     }
   }
 
-  XMC_ASSERT("XMC_VADC_GROUP_CheckSlaveReadiness:Wrong Slave group", (master_grp_num == slave_group ))
 
   if(slave_group < master_grp_num)
   {
@@ -593,21 +607,20 @@ void XMC_VADC_GROUP_IgnoreSlaveReadiness(XMC_VADC_GROUP_t *const group_ptr, uint
 {
   uint32_t i,master_grp_num;
   XMC_ASSERT("XMC_VADC_GROUP_IgnoreSlaveReadiness:Wrong Group Pointer", XMC_VADC_CHECK_GROUP_PTR(group_ptr))
+  XMC_ASSERT("XMC_VADC_GROUP_IgnoreSlaveReadiness:Wrong Slave group", ((slave_group >= 0) && (slave_group <= (XMC_VADC_MAXIMUM_NUM_GROUPS - 1))))
 
   master_grp_num =0;
   for(i=0; i<XMC_VADC_MAXIMUM_NUM_GROUPS; i++)
   {
-	if(g_xmc_vadc_group_array[i] == group_ptr)
-	{
-	  master_grp_num = i;
-	}
+	  if(g_xmc_vadc_group_array[i] == group_ptr)
+	  {
+	    master_grp_num = i;
+	  }
   }
-
-  XMC_ASSERT("XMC_VADC_GROUP_IgnoreSlaveReadiness:Wrong Slave group", (master_grp_num == slave_group ))
 
   if(slave_group < master_grp_num)
   {
-	slave_group++;
+	  slave_group++;
   }
   group_ptr->SYNCTR &= ~(1U << (slave_group + XMC_VADC_SYNCTR_START_LOCATION));
 }
@@ -618,7 +631,7 @@ void XMC_VADC_GROUP_SetSyncSlaveReadySignal(XMC_VADC_GROUP_t *const group_ptr,
                                             uint32_t eval_origin_group)
 {
   XMC_ASSERT("XMC_VADC_GROUP_SetSyncSlaveReadySignal:Wrong Group Pointer", XMC_VADC_CHECK_GROUP_PTR(group_ptr))
-  XMC_ASSERT("XMC_VADC_GROUP_SetSyncSlaveReadySignal:Wrong Group numbers", (eval_waiting_group == eval_origin_group ))
+  XMC_ASSERT("XMC_VADC_GROUP_SetSyncSlaveReadySignal:Wrong Group numbers", (eval_waiting_group != eval_origin_group ))
 
   if(eval_origin_group < eval_waiting_group)
   {

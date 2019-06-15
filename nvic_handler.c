@@ -5,7 +5,9 @@
  *      Author: zzr
  */
 #include <xmc1100.h>
-#include <core_cm0.h>
+#include <stdio.h>
+#include <stdbool.h>
+#include <stdint.h>
 
 /*******************************************************************************
  * LOCAL FUNCTIONS
@@ -14,8 +16,7 @@ static void delay(uint32_t cycles)
 {
   volatile uint32_t i;
 
-  for(i = 0UL; i < cycles ;++i)
-  {
+  for(i = 0UL; i < cycles ;++i) {
     __NOP();
   }
 }
@@ -72,172 +73,222 @@ void UsageFault_Handler(void){
 #endif
 
 void SCU_0_IRQHandler(void){
-	;
+	printf(__func__);
+	while(1)
+	{;}
 }
 
 void ERU0_0_IRQHandler(void){
-	;
+	printf(__func__);
+	while(1)
+	{;}
 }
 
 void ERU0_1_IRQHandler(void){
-	;
+	printf(__func__);
+	while(1)
+	{;}
 }
 
 void ERU0_2_IRQHandler(void){
-	;
+	printf(__func__);
+	while(1)
+	{;}
 }
 
 void ERU0_3_IRQHandler(void){
-	;
+	printf(__func__);
+	while(1)
+	{;}
 }
 
 void ERU1_0_IRQHandler(void){
-	;
+	printf(__func__);
+	while(1)
+	{;}
 }
 
 void ERU1_1_IRQHandler(void){
-	;
+	printf(__func__);
+	while(1)
+	{;}
 }
 
 void ERU1_2_IRQHandler(void){
-	;
+	printf(__func__);
+	while(1)
+	{;}
 }
 
 void ERU1_3_IRQHandler(void){
-	;
+	printf(__func__);
+	while(1)
+	{;}
 }
 
 void PMU0_0_IRQHandler(void){
-	;
+	printf(__func__);
+	while(1)
+	{;}
 }
 
 void VADC0_C0_0_IRQHandler(void){
-	;
+	printf(__func__);
+	while(1)
+	{;}
 }
 
-void VADC0_C0_1_IRQHandler(void)
-{
-	;
+//void VADC0_C0_1_IRQHandler(void){
+//	printf(__func__);
+//	while(1)
+//	{;}
+//}
+
+void VADC0_C0_2_IRQHandler(void){
+	printf(__func__);
+	while(1)
+	{;}
 }
 
-void VADC0_C0_2_IRQHandler(void)
-{
-	;
+void VADC0_C0_3_IRQHandler(void){
+	printf(__func__);
+	while(1)
+	{;}
 }
 
-void VADC0_C0_3_IRQHandler(void)
-{
-	;
+void VADC0_G0_0_IRQHandler(void){
+	printf(__func__);
+	while(1)
+	{;}
 }
 
-void VADC0_G0_0_IRQHandler(void)
-{
-	;
+void VADC0_G0_1_IRQHandler(void){
+	printf(__func__);
+	while(1)
+	{;}
 }
 
-void VADC0_G0_1_IRQHandler(void)
-{
-	;
+void VADC0_G0_2_IRQHandler(void){
+	printf(__func__);
+	while(1)
+	{;}
 }
 
-void VADC0_G0_2_IRQHandler(void)
-{
-	;
+void VADC0_G0_3_IRQHandler(void){
+	printf(__func__);
+	while(1)
+	{;}
 }
 
-void VADC0_G0_3_IRQHandler(void)
-{
-	;
+void VADC0_G1_0_IRQHandler(void){
+	printf(__func__);
+	while(1)
+	{;}
 }
 
-void VADC0_G1_0_IRQHandler(void)
-{
-	;
+void VADC0_G1_1_IRQHandler(void){
+	printf(__func__);
+	while(1)
+	{;}
 }
 
-void VADC0_G1_1_IRQHandler(void)
-{
-	;
+void VADC0_G1_2_IRQHandler(void){
+	printf(__func__);
+	while(1)
+	{;}
 }
 
-void VADC0_G1_2_IRQHandler(void)
-{
-	;
+void VADC0_G1_3_IRQHandler(void){
+	printf(__func__);
+	while(1)
+	{;}
 }
 
-void VADC0_G1_3_IRQHandler(void)
-{
-	;
+void VADC0_G2_0_IRQHandler(void){
+	printf(__func__);
+	while(1)
+	{;}
 }
 
-void VADC0_G2_0_IRQHandler(void)
-{
-	;
+void VADC0_G2_1_IRQHandler(void){
+	printf(__func__);
+	while(1)
+	{;}
 }
 
-void VADC0_G2_1_IRQHandler(void)
-{
-	;
+void VADC0_G2_2_IRQHandler(void){
+	printf(__func__);
+	while(1)
+	{;}
 }
 
-void VADC0_G2_2_IRQHandler(void)
-{
-	;
+void VADC0_G2_3_IRQHandler(void){
+	printf(__func__);
+	while(1)
+	{;}
 }
 
-void VADC0_G2_3_IRQHandler(void)
-{
-	;
+
+void VADC0_G3_0_IRQHandler(void){
+	printf(__func__);
+	while(1)
+	{;}
 }
 
-void VADC0_G3_0_IRQHandler(void)
-{
-	;
+void VADC0_G3_1_IRQHandler(void){
+	printf(__func__);
+	while(1)
+	{;}
 }
 
-void VADC0_G3_1_IRQHandler(void)
-{
-	;
+
+void VADC0_G3_2_IRQHandler(void){
+	printf(__func__);
+	while(1)
+	{;}
 }
 
-void VADC0_G3_2_IRQHandler(void)
-{
-	;
+void VADC0_G3_3_IRQHandler(void){
+	printf(__func__);
+	while(1)
+	{;}
 }
 
-void VADC0_G3_3_IRQHandler(void)
-{
-	;
+void CCU40_0_IRQHandler(void){
+	printf(__func__);
+	while(1)
+	{;}
 }
 
-void CCU40_0_IRQHandler(void)
-{
-	;
+void CCU40_1_IRQHandler(void){
+	printf(__func__);
+	while(1)
+	{;}
 }
 
-void CCU40_1_IRQHandler(void)
-{
-	;
+void CCU40_2_IRQHandler(void){
+	printf(__func__);
+	while(1)
+	{;}
 }
 
-void CCU40_2_IRQHandler(void)
-{
-	;
+
+void CCU40_3_IRQHandler(void){
+	printf(__func__);
+	while(1)
+	{;}
 }
 
-void CCU40_3_IRQHandler(void)
-{
-	;
+void CCU41_0_IRQHandler(void){
+	printf(__func__);
+	while(1)
+	{;}
 }
 
-void CCU41_0_IRQHandler(void)
-{
-	;
-}
-
-void CCU41_1_IRQHandler(void)
-{
-	;
+void CCU41_1_IRQHandler(void){
+	printf(__func__);
+	while(1)
+	{;}
 }
 
 void CCU41_2_IRQHandler(void)

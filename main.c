@@ -53,6 +53,8 @@
 XMC_GPIO_CONFIG_t uart_tx;
 XMC_GPIO_CONFIG_t uart_rx;
 
+bool g_adc_c0_1_flag;
+
 /* UART configuration */
 const XMC_UART_CH_CONFIG_t uart_config = { .data_bits = 8U, .stop_bits = 1U,
 		.baudrate = 921600 };
@@ -86,13 +88,6 @@ void __attribute__((section(".ram_code"))) TestFunct(void){
 	printf("%08X %s\n", TestFunct, __func__);
 	printf("CPUID:%08X\n", SCB->CPUID);
 }
-
-extern void interface_init(void);
-extern void protocol_init(void);
-extern void server_loop(void);
-
-volatile uint32_t g_sp_vals[7];
-volatile uint8_t* g_ptrs[3];
 
 extern void Heap_Bank1_Size(void);
 extern void Heap_Bank1_Start(void);
@@ -168,15 +163,50 @@ void Reset_Handler(void) {
 	main();
 }
 
+typedef struct detailed_result_struct
+{
+	uint8_t channel_num;
+	uint8_t group_num;
+	uint16_t conversion_result;
+}detailed_result_struct_t;
+
+#define	ADC_BUF_LEN	2
+
+uint32_t result;
+bool valid_result;
+detailed_result_struct_t detailed_result[ADC_BUF_LEN];
+static uint8_t g_adc_ch_index;
+
+void Adc_Measurement_Handler(){
+	uint32_t result;
+	valid_result = (bool)false;
+
+	result = ADC_MEASUREMENT_GetGlobalDetailedResult();
+
+	if((bool)(result >> VADC_GLOBRES_VF_Pos))
+	{
+		valid_result = (bool)true;
+		detailed_result[g_adc_ch_index].channel_num = (result & VADC_GLOBRES_CHNR_Msk) >> VADC_GLOBRES_CHNR_Pos;
+		detailed_result[g_adc_ch_index].group_num = ADC_MEASUREMENT_Channel_A.group_index;
+		detailed_result[g_adc_ch_index].conversion_result = (result & VADC_GLOBRES_RESULT_Msk) >>
+				((uint32_t)ADC_MEASUREMENT_0.iclass_config_handle->conversion_mode_standard * (uint32_t)2);
+	}
+	g_adc_ch_index = (g_adc_ch_index+1)%ADC_BUF_LEN;
+
+	g_adc_c0_1_flag = true;
+}
+
 int main(void){
 	__IO uint32_t tmpTick;
 	__IO int32_t tmpK;
 	__IO int32_t tmpL;
-	__IO uint32_t deltaTick;
+	uint8_t tmp_idx;
 
 	DAVE_STATUS_t status;
 
 	status = DAVE_Init();           /* Initialization of DAVE APPs  */
+
+	ADC_MEASUREMENT_StartConversion(&ADC_MEASUREMENT_0);
 
 	XMC_GPIO_SetMode(XMC_GPIO_PORT0, 5, XMC_GPIO_MODE_OUTPUT_OPEN_DRAIN);
 
@@ -209,22 +239,6 @@ int main(void){
 	/* Start UART channel */
 	XMC_UART_CH_Start(XMC_UART0_CH1);
 
-	spi_init();
-
-//	// LEDs configuration (P1.2 and P1.3 are used for serial comm)
-//	XMC_GPIO_SetMode(XMC_GPIO_PORT0, 5, XMC_GPIO_MODE_OUTPUT_OPEN_DRAIN);
-//	XMC_GPIO_SetMode(XMC_GPIO_PORT0, 6, XMC_GPIO_MODE_OUTPUT_OPEN_DRAIN);
-//	XMC_GPIO_SetMode(XMC_GPIO_PORT0, 7, XMC_GPIO_MODE_OUTPUT_OPEN_DRAIN);
-//	XMC_GPIO_SetMode(XMC_GPIO_PORT1, 4, XMC_GPIO_MODE_OUTPUT_OPEN_DRAIN);
-//	XMC_GPIO_SetMode(XMC_GPIO_PORT1, 5, XMC_GPIO_MODE_OUTPUT_OPEN_DRAIN);
-//
-//	// Turn OFF all LEDs
-//	XMC_GPIO_SetOutputHigh(XMC_GPIO_PORT0, 5);
-//	XMC_GPIO_SetOutputHigh(XMC_GPIO_PORT0, 6);
-//	XMC_GPIO_SetOutputHigh(XMC_GPIO_PORT0, 7);
-//	XMC_GPIO_SetOutputHigh(XMC_GPIO_PORT1, 4);
-//	XMC_GPIO_SetOutputHigh(XMC_GPIO_PORT1, 5);
-
 	/* Enable DTS */
 	XMC_SCU_StartTempMeasurement();
 
@@ -237,43 +251,49 @@ int main(void){
 			*(uint32_t*)0x10000F18,
 			SCU_GENERAL->DBGROMID, SCU_GENERAL->IDCHIP, SCU_GENERAL->ID, SCB->CPUID);
 
+
+	printf("Heap Start:%08X, Heap End:%08X, Heap Size:%08X\n",
+			(uint32_t)Heap_Bank1_Start, (uint32_t)Heap_Bank1_End, (uint32_t)Heap_Bank1_Size);
+
+	printf("__Vectors:%08X\n", (uint32_t)__Vectors);
+	printf("eROData:%08X\n", (uint32_t)eROData);
+	printf("VeneerStart:%08X\n", (uint32_t)VeneerStart);
+	printf("VeneerEnd:%08X\n", (uint32_t)VeneerEnd);
+	printf("VeneerSize:%08X\n", (uint32_t)VeneerSize);
+	printf("DataLoadAddr:%08X\n", (uint32_t)DataLoadAddr);
+	printf("__ram_code_load:%08X\n", (uint32_t)__ram_code_load);
+	printf("__ram_code_start:%08X\n", (uint32_t)__ram_code_start);
+	printf("__ram_code_end:%08X\n", (uint32_t)__ram_code_end);
+
+	__ASM volatile ("svc 0" : : : "memory");
+	printf("After SVC\n");
+
 	while(1){
-		HAL_Delay(1000);
+		HAL_Delay(500);
 		DIGITAL_IO_ToggleOutput(&DIGITAL_IO_0);
 		DIGITAL_IO_ToggleOutput(&DIGITAL_IO_1);
 		DIGITAL_IO_ToggleOutput(&DIGITAL_IO_2);
 		DIGITAL_IO_ToggleOutput(&DIGITAL_IO_3);
 		DIGITAL_IO_ToggleOutput(&DIGITAL_IO_4);
 
-//		XMC_GPIO_ToggleOutput(XMC_GPIO_PORT0, 6);
-
-		printf("Heap Start:%08X, Heap End:%08X, Heap Size:%08X\n",
-				(uint32_t)Heap_Bank1_Start, (uint32_t)Heap_Bank1_End, (uint32_t)Heap_Bank1_Size);
-
-		printf("__Vectors:%08X\n", (uint32_t)__Vectors);
-		printf("eROData:%08X\n", (uint32_t)eROData);
-		printf("VeneerStart:%08X\n", (uint32_t)VeneerStart);
-		printf("VeneerEnd:%08X\n", (uint32_t)VeneerEnd);
-		printf("VeneerSize:%08X\n", (uint32_t)VeneerSize);
-		printf("DataLoadAddr:%08X\n", (uint32_t)DataLoadAddr);
-		printf("__ram_code_load:%08X\n", (uint32_t)__ram_code_load);
-		printf("__ram_code_start:%08X\n", (uint32_t)__ram_code_start);
-		printf("__ram_code_end:%08X\n", (uint32_t)__ram_code_end);
-
-		__ASM volatile ("svc 0" : : : "memory");
-		printf("After SVC\n");
-
-		tmpTick = g_Ticks;
-		while((tmpTick+2000) > g_Ticks){
-			__NOP();
-		}
-		deltaTick = tmpTick * 2;
-
 		tmpK = XMC1000_CalcTemperature()-273;
 		tmpL = tmpK * 10;
-		printf("%i %i %i %i\n",
-				tmpK, tmpL,
-				tmpTick, deltaTick);
+		printf("%i\n",
+				tmpK);
+
+
+		if(g_adc_c0_1_flag) {
+			for(tmp_idx=0; tmp_idx<ADC_BUF_LEN; ++tmp_idx) {
+				printf("[%u] %u, %u, %u\n", tmp_idx,
+						detailed_result[tmp_idx].channel_num,
+						detailed_result[tmp_idx].group_num,
+						detailed_result[tmp_idx].conversion_result);
+			}
+			printf("\n");
+
+			g_adc_c0_1_flag = false;
+			ADC_MEASUREMENT_StartConversion(&ADC_MEASUREMENT_0);
+		}
 	}
 
 	return 0;
