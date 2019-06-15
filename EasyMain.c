@@ -414,22 +414,18 @@ int main(void){
 			char* p = &var.buf1[1];
 			char*	q = (char*)&var.b;
 
-			printf("size check %i %i %i %i\n",
+			printf("size check %i %i %i %i ,%i %i %i %i, %i\n\n",
 					__builtin_object_size (p, 0),
 					__builtin_object_size (p, 1),
+					__builtin_object_size (p, 2),
+					__builtin_object_size (p, 3),
 					__builtin_object_size (q, 0),
-					__builtin_object_size (q, 1));
-
-			printf("malloc %p builtin_malloc %p\n",
-					malloc,
-					__builtin_malloc
-			);
-
-			printf("memcmp %p __builtin_bcmp %p\n",
-					memcmp,
-					__builtin_bcmp
-			);
+					__builtin_object_size (q, 1),
+					__builtin_object_size (q, 2),
+					__builtin_object_size (q, 3),
+					sizeof(var));
 		}
+
 		{
 			char a[10];
 			func(a);
