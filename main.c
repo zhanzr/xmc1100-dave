@@ -45,6 +45,8 @@
 #include "XMC1000_TSE.h"
 #include "asm_prototype.h"
 
+#include <DAVE.h>                 //Declarations from DAVE Code Generation (includes SFR declaration)
+
 #define UART_RX P1_3
 #define UART_TX P1_2
 
@@ -172,6 +174,25 @@ int main(void){
 	__IO int32_t tmpL;
 	__IO uint32_t deltaTick;
 
+	DAVE_STATUS_t status;
+
+	status = DAVE_Init();           /* Initialization of DAVE APPs  */
+
+	XMC_GPIO_SetMode(XMC_GPIO_PORT0, 5, XMC_GPIO_MODE_OUTPUT_OPEN_DRAIN);
+
+	printf("Test %u MHz %s\n", SystemCoreClock / 1000000, __TIME__);
+
+	if(status != DAVE_STATUS_SUCCESS)
+	{
+		/* Placeholder for error handler code. The while loop below can be replaced with an user error handler. */
+		XMC_DEBUG("DAVE APPs initialization failed\n");
+
+		while(1U)
+		{
+
+		}
+	}
+
 	// System Timer initialization
 	SysTick_Config(SystemCoreClock / 1000);
 
@@ -190,19 +211,19 @@ int main(void){
 
 	spi_init();
 
-	// LEDs configuration (P1.2 and P1.3 are used for serial comm)
-	XMC_GPIO_SetMode(XMC_GPIO_PORT0, 5, XMC_GPIO_MODE_OUTPUT_OPEN_DRAIN);
-	XMC_GPIO_SetMode(XMC_GPIO_PORT0, 6, XMC_GPIO_MODE_OUTPUT_OPEN_DRAIN);
-	XMC_GPIO_SetMode(XMC_GPIO_PORT0, 7, XMC_GPIO_MODE_OUTPUT_OPEN_DRAIN);
-	XMC_GPIO_SetMode(XMC_GPIO_PORT1, 4, XMC_GPIO_MODE_OUTPUT_OPEN_DRAIN);
-	XMC_GPIO_SetMode(XMC_GPIO_PORT1, 5, XMC_GPIO_MODE_OUTPUT_OPEN_DRAIN);
-
-	// Turn OFF all LEDs
-	XMC_GPIO_SetOutputHigh(XMC_GPIO_PORT0, 5);
-	XMC_GPIO_SetOutputHigh(XMC_GPIO_PORT0, 6);
-	XMC_GPIO_SetOutputHigh(XMC_GPIO_PORT0, 7);
-	XMC_GPIO_SetOutputHigh(XMC_GPIO_PORT1, 4);
-	XMC_GPIO_SetOutputHigh(XMC_GPIO_PORT1, 5);
+//	// LEDs configuration (P1.2 and P1.3 are used for serial comm)
+//	XMC_GPIO_SetMode(XMC_GPIO_PORT0, 5, XMC_GPIO_MODE_OUTPUT_OPEN_DRAIN);
+//	XMC_GPIO_SetMode(XMC_GPIO_PORT0, 6, XMC_GPIO_MODE_OUTPUT_OPEN_DRAIN);
+//	XMC_GPIO_SetMode(XMC_GPIO_PORT0, 7, XMC_GPIO_MODE_OUTPUT_OPEN_DRAIN);
+//	XMC_GPIO_SetMode(XMC_GPIO_PORT1, 4, XMC_GPIO_MODE_OUTPUT_OPEN_DRAIN);
+//	XMC_GPIO_SetMode(XMC_GPIO_PORT1, 5, XMC_GPIO_MODE_OUTPUT_OPEN_DRAIN);
+//
+//	// Turn OFF all LEDs
+//	XMC_GPIO_SetOutputHigh(XMC_GPIO_PORT0, 5);
+//	XMC_GPIO_SetOutputHigh(XMC_GPIO_PORT0, 6);
+//	XMC_GPIO_SetOutputHigh(XMC_GPIO_PORT0, 7);
+//	XMC_GPIO_SetOutputHigh(XMC_GPIO_PORT1, 4);
+//	XMC_GPIO_SetOutputHigh(XMC_GPIO_PORT1, 5);
 
 	/* Enable DTS */
 	XMC_SCU_StartTempMeasurement();
@@ -217,8 +238,14 @@ int main(void){
 			SCU_GENERAL->DBGROMID, SCU_GENERAL->IDCHIP, SCU_GENERAL->ID, SCB->CPUID);
 
 	while(1){
-		HAL_Delay(2000);
-		XMC_GPIO_ToggleOutput(XMC_GPIO_PORT0, 6);
+		HAL_Delay(1000);
+		DIGITAL_IO_ToggleOutput(&DIGITAL_IO_0);
+		DIGITAL_IO_ToggleOutput(&DIGITAL_IO_1);
+		DIGITAL_IO_ToggleOutput(&DIGITAL_IO_2);
+		DIGITAL_IO_ToggleOutput(&DIGITAL_IO_3);
+		DIGITAL_IO_ToggleOutput(&DIGITAL_IO_4);
+
+//		XMC_GPIO_ToggleOutput(XMC_GPIO_PORT0, 6);
 
 		printf("Heap Start:%08X, Heap End:%08X, Heap Size:%08X\n",
 				(uint32_t)Heap_Bank1_Start, (uint32_t)Heap_Bank1_End, (uint32_t)Heap_Bank1_Size);
