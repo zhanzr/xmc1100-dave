@@ -1,17 +1,14 @@
 <?xml version="1.0" encoding="ASCII"?>
 <ResourceModel:Peripheral xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:ResourceModel="http://www.infineon.com/Davex/Resource.ecore" URI="http://resources/11.38.3/peripheral/vadc/0" description="VADC Device Description" baseAddress="0x48030000">
   <provided xsi:type="ResourceModel:ResourceGroup" name="1" URI="http://resources/11.38.3/peripheral/vadc/0/class/1">
-    <upwardMapList xsi:type="ResourceModel:HWResource" href="../../APPS/ADC_MEASUREMENT/v4_1_22/ADC_MEASUREMENT_0.app#//@hwResources.1"/>
     <resourcesList name="globiclass" requiredResourceUri="http://resources/11.38.3/peripheral/vadc/0/globiclass1"/>
     <resourcesList name="global_signal" requiredResourceUri="http://resources/11.38.3/peripheral/vadc/0/gcl_global_signal1"/>
   </provided>
   <provided xsi:type="ResourceModel:ResourceGroup" name="0" URI="http://resources/11.38.3/peripheral/vadc/0/class/0">
-    <upwardMapList xsi:type="ResourceModel:HWResource" href="../../APPS/ADC_MEASUREMENT/v4_1_22/ADC_MEASUREMENT_0.app#//@hwResources.2"/>
     <resourcesList name="globiclass" requiredResourceUri="http://resources/11.38.3/peripheral/vadc/0/globiclass0"/>
     <resourcesList name="global_signal" requiredResourceUri="http://resources/11.38.3/peripheral/vadc/0/gcl_global_signal0"/>
   </provided>
   <provided xsi:type="ResourceModel:ResourceGroup" name="global" URI="http://resources/11.38.3/peripheral/vadc/0/global">
-    <upwardMapList xsi:type="ResourceModel:HWResource" href="../../APPS/GLOBAL_ADC/v4_0_18/GLOBAL_ADC_0.app#//@hwResources.0"/>
     <resourcesList name="id" requiredResourceUri="http://resources/11.38.3/peripheral/vadc/0/id"/>
     <resourcesList name="clc" requiredResourceUri="http://resources/11.38.3/peripheral/vadc/0/clc"/>
     <resourcesList name="ocs" requiredResourceUri="http://resources/11.38.3/peripheral/vadc/0/ocs"/>
@@ -19,7 +16,6 @@
     <resourcesList name="global_signal" requiredResourceUri="http://resources/11.38.3/peripheral/vadc/0/g_global_signal"/>
   </provided>
   <provided xsi:type="ResourceModel:ResourceGroup" name="global_result" URI="http://resources/11.38.3/peripheral/vadc/0/global_result">
-    <upwardMapList xsi:type="ResourceModel:HWResource" href="../../APPS/ADC_MEASUREMENT/v4_1_22/ADC_MEASUREMENT_0.app#//@hwResources.81"/>
     <resourcesList name="globrcr" requiredResourceUri="http://resources/11.38.3/peripheral/vadc/0/globrcr"/>
     <resourcesList name="globres" requiredResourceUri="http://resources/11.38.3/peripheral/vadc/0/globres"/>
     <resourcesList name="globresd" requiredResourceUri="http://resources/11.38.3/peripheral/vadc/0/globresd"/>
@@ -52,7 +48,6 @@
     <enumValues xsi:type="ResourceModel:RegEnumValue" value="0b1xxx" description="Reserved"/>
   </provided>
   <provided xsi:type="ResourceModel:ResourceGroup" name="backgnd" URI="http://resources/11.38.3/peripheral/vadc/0/backgnd">
-    <upwardMapList xsi:type="ResourceModel:HWResource" href="../../APPS/ADC_MEASUREMENT/v4_1_22/ADC_MEASUREMENT_0.app#//@hwResources.0"/>
     <resourcesList name="brsctrl" requiredResourceUri="http://resources/11.38.3/peripheral/vadc/0/brsctrl"/>
     <resourcesList name="brsmr" requiredResourceUri="http://resources/11.38.3/peripheral/vadc/0/brsmr"/>
     <resourcesList name="brssel0" requiredResourceUri="http://resources/11.38.3/peripheral/vadc/0/brssel0"/>
@@ -115,12 +110,10 @@
     <enumValues xsi:type="ResourceModel:RegEnumValue" value="0b1xxx" description="Reserved"/>
   </provided>
   <provided xsi:type="ResourceModel:ResourceGroup" name="config" URI="http://resources/11.38.3/peripheral/vadc/0/group/1/config">
-    <upwardMapList xsi:type="ResourceModel:HWResource" href="../../APPS/GLOBAL_ADC/v4_0_18/GLOBAL_ADC_0.app#//@hwResources.2"/>
     <resourcesList name="select" requiredResourceUri="http://resources/11.38.3/peripheral/vadc/0/g1configselect"/>
     <resourcesList name="shs_sel" requiredResourceUri="http://resources/11.38.3/peripheral/vadc/0/g1_shs_sel"/>
   </provided>
   <provided xsi:type="ResourceModel:ResourceGroup" name="config" URI="http://resources/11.38.3/peripheral/vadc/0/group/0/config">
-    <upwardMapList xsi:type="ResourceModel:HWResource" href="../../APPS/GLOBAL_ADC/v4_0_18/GLOBAL_ADC_0.app#//@hwResources.1"/>
     <resourcesList name="select" requiredResourceUri="http://resources/11.38.3/peripheral/vadc/0/g0configselect"/>
     <resourcesList name="shs_sel" requiredResourceUri="http://resources/11.38.3/peripheral/vadc/0/g0_shs_sel"/>
   </provided>
@@ -131,14 +124,12 @@
     <resourcesList name="gain_sel" requiredResourceUri="http://resources/11.38.3/peripheral/vadc/0/g1ch5gainsel"/>
   </provided>
   <provided xsi:type="ResourceModel:ResourceGroup" name="5" URI="http://resources/11.38.3/peripheral/vadc/0/group/0/ch/5">
-    <upwardMapList xsi:type="ResourceModel:HWResource" href="../../APPS/ADC_MEASUREMENT/v4_1_22/ADC_MEASUREMENT_0.app#//@hwResources.55"/>
     <resourcesList name="bkg_sel" requiredResourceUri="http://resources/11.38.3/peripheral/vadc/0/g0ch5bkg_sel"/>
     <resourcesList name="gch" requiredResourceUri="http://resources/11.38.3/peripheral/vadc/0/g0ch5"/>
     <resourcesList name="select" requiredResourceUri="http://resources/11.38.3/peripheral/vadc/0/g0ch5select"/>
     <resourcesList name="gain_sel" requiredResourceUri="http://resources/11.38.3/peripheral/vadc/0/g0ch5gainsel"/>
   </provided>
   <provided xsi:type="ResourceModel:ResourceGroup" name="6" URI="http://resources/11.38.3/peripheral/vadc/0/group/0/ch/6">
-    <upwardMapList xsi:type="ResourceModel:HWResource" href="../../APPS/ADC_MEASUREMENT/v4_1_22/ADC_MEASUREMENT_0.app#//@hwResources.56"/>
     <resourcesList name="bkg_sel" requiredResourceUri="http://resources/11.38.3/peripheral/vadc/0/g0ch6bkg_sel"/>
     <resourcesList name="gch" requiredResourceUri="http://resources/11.38.3/peripheral/vadc/0/g0ch6"/>
     <resourcesList name="select" requiredResourceUri="http://resources/11.38.3/peripheral/vadc/0/g0ch6select"/>

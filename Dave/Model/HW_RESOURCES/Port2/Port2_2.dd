@@ -208,7 +208,6 @@
     <enumValues xsi:type="ResourceModel:RegEnumValue" value="0b11" description="Reserved."/>
   </provided>
   <provided xsi:type="ResourceModel:ResourceGroup" name="P2.0 / #35" URI="http://resources/1.38.1/port/p/2/pad/0">
-    <upwardMapList xsi:type="ResourceModel:HWResource" href="../../APPS/ANALOG_IO/v4_0_10/ANALOG_IO_0.app#//@hwResources.0"/>
     <resourcesList name="out_p" requiredResourceUri="http://resources/1.38.1/port/p/2/out/p0"/>
     <resourcesList name="omr_ps" requiredResourceUri="http://resources/1.38.1/port/p/2/omr/ps0"/>
     <resourcesList name="omr_pr" requiredResourceUri="http://resources/1.38.1/port/p/2/omr/pr0"/>
@@ -252,7 +251,6 @@
     <enumValues xsi:type="ResourceModel:RegEnumValue" value="0b1" description="Pad Pn.x is disabled."/>
   </provided>
   <provided xsi:type="ResourceModel:ResourceGroup" name="P2.1 / #36" URI="http://resources/1.38.1/port/p/2/pad/1">
-    <upwardMapList xsi:type="ResourceModel:HWResource" href="../../APPS/ANALOG_IO/v4_0_10/ANALOG_IO_1.app#//@hwResources.0"/>
     <resourcesList name="out_p" requiredResourceUri="http://resources/1.38.1/port/p/2/out/p1"/>
     <resourcesList name="omr_ps" requiredResourceUri="http://resources/1.38.1/port/p/2/omr/ps1"/>
     <resourcesList name="omr_pr" requiredResourceUri="http://resources/1.38.1/port/p/2/omr/pr1"/>

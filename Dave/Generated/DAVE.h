@@ -55,16 +55,10 @@
 #include "CLOCK_XMC1/clock_xmc1.h"
   
 
-#include "GLOBAL_ADC/global_adc.h"
-  
-
 #include "CPU_CTRL_XMC1/cpu_ctrl_xmc1.h"
   
 
-#include "ANALOG_IO/analog_io.h"
-  
-
-#include "ADC_MEASUREMENT/adc_measurement.h"
+#include "UART/uart.h"
   
 	
 

@@ -12,26 +12,6 @@
     <Generated_Files>
         <Source_Files>
             <Source_File>
-                <File_Name>adc_measurement.c</File_Name>
-                <Path>\Dave\Generated\ADC_MEASUREMENT\adc_measurement.c</Path>
-                <Type>C File</Type>
-            </Source_File>
-            <Source_File>
-                <File_Name>adc_measurement_conf.c</File_Name>
-                <Path>\Dave\Generated\ADC_MEASUREMENT\adc_measurement_conf.c</Path>
-                <Type>C File</Type>
-            </Source_File>
-            <Source_File>
-                <File_Name>analog_io.c</File_Name>
-                <Path>\Dave\Generated\ANALOG_IO\analog_io.c</Path>
-                <Type>C File</Type>
-            </Source_File>
-            <Source_File>
-                <File_Name>analog_io_conf.c</File_Name>
-                <Path>\Dave\Generated\ANALOG_IO\analog_io_conf.c</Path>
-                <Type>C File</Type>
-            </Source_File>
-            <Source_File>
                 <File_Name>clock_xmc1.c</File_Name>
                 <Path>\Dave\Generated\CLOCK_XMC1\clock_xmc1.c</Path>
                 <Type>C File</Type>
@@ -67,47 +47,17 @@
                 <Type>C File</Type>
             </Source_File>
             <Source_File>
-                <File_Name>global_adc.c</File_Name>
-                <Path>\Dave\Generated\GLOBAL_ADC\global_adc.c</Path>
+                <File_Name>uart.c</File_Name>
+                <Path>\Dave\Generated\UART\uart.c</Path>
                 <Type>C File</Type>
             </Source_File>
             <Source_File>
-                <File_Name>global_adc_conf.c</File_Name>
-                <Path>\Dave\Generated\GLOBAL_ADC\global_adc_conf.c</Path>
+                <File_Name>uart_conf.c</File_Name>
+                <Path>\Dave\Generated\UART\uart_conf.c</Path>
                 <Type>C File</Type>
             </Source_File>
         </Source_Files>
         <Header_Files>
-            <Header_File>
-                <File_Name>adc_measurement.h</File_Name>
-                <Path>\Dave\Generated\ADC_MEASUREMENT\adc_measurement.h</Path>
-                <Type>H File</Type>
-            </Header_File>
-            <Header_File>
-                <File_Name>adc_measurement_conf.h</File_Name>
-                <Path>\Dave\Generated\ADC_MEASUREMENT\adc_measurement_conf.h</Path>
-                <Type>H File</Type>
-            </Header_File>
-            <Header_File>
-                <File_Name>adc_measurement_extern.h</File_Name>
-                <Path>\Dave\Generated\ADC_MEASUREMENT\adc_measurement_extern.h</Path>
-                <Type>H File</Type>
-            </Header_File>
-            <Header_File>
-                <File_Name>analog_io.h</File_Name>
-                <Path>\Dave\Generated\ANALOG_IO\analog_io.h</Path>
-                <Type>H File</Type>
-            </Header_File>
-            <Header_File>
-                <File_Name>analog_io_conf.h</File_Name>
-                <Path>\Dave\Generated\ANALOG_IO\analog_io_conf.h</Path>
-                <Type>H File</Type>
-            </Header_File>
-            <Header_File>
-                <File_Name>analog_io_extern.h</File_Name>
-                <Path>\Dave\Generated\ANALOG_IO\analog_io_extern.h</Path>
-                <Type>H File</Type>
-            </Header_File>
             <Header_File>
                 <File_Name>clock_xmc1.h</File_Name>
                 <Path>\Dave\Generated\CLOCK_XMC1\clock_xmc1.h</Path>
@@ -164,18 +114,18 @@
                 <Type>H File</Type>
             </Header_File>
             <Header_File>
-                <File_Name>global_adc.h</File_Name>
-                <Path>\Dave\Generated\GLOBAL_ADC\global_adc.h</Path>
+                <File_Name>uart.h</File_Name>
+                <Path>\Dave\Generated\UART\uart.h</Path>
                 <Type>H File</Type>
             </Header_File>
             <Header_File>
-                <File_Name>global_adc_conf.h</File_Name>
-                <Path>\Dave\Generated\GLOBAL_ADC\global_adc_conf.h</Path>
+                <File_Name>uart_conf.h</File_Name>
+                <Path>\Dave\Generated\UART\uart_conf.h</Path>
                 <Type>H File</Type>
             </Header_File>
             <Header_File>
-                <File_Name>global_adc_extern.h</File_Name>
-                <Path>\Dave\Generated\GLOBAL_ADC\global_adc_extern.h</Path>
+                <File_Name>uart_extern.h</File_Name>
+                <Path>\Dave\Generated\UART\uart_extern.h</Path>
                 <Type>H File</Type>
             </Header_File>
         </Header_Files>

@@ -401,16 +401,6 @@ void POSIF1_1_IRQHandler(void)
 	;
 }
 
-void USIC0_0_IRQHandler(void)
-{
-	;
-}
-
-void USIC0_1_IRQHandler(void)
-{
-	;
-}
-
 void USIC0_2_IRQHandler(void)
 {
 	;

@@ -66,7 +66,7 @@ MEMORY
 	SRAM(!RX) : ORIGIN = 0x20000000, LENGTH = 0x4000
 }
 
-stack_size = DEFINED(stack_size) ? stack_size : 0x3800;
+stack_size = DEFINED(stack_size) ? stack_size : 0x2000;
 no_init_size = 4;
 
 SECTIONS

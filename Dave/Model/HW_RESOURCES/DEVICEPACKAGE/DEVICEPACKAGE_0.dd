@@ -9,9 +9,11 @@
     <resourcesList name="pin" requiredResourceUri="http://resources/TSSOP38.0.0/devicepackage/0/pin11"/>
   </provided>
   <provided xsi:type="ResourceModel:ResourceGroup" name="14" URI="http://resources/tssop38.0.0/devicepackage/0/14">
+    <upwardMapList xsi:type="ResourceModel:HWResource" href="../../APPS/UART/v4_1_12/UART_0.app#//@hwResources.11"/>
     <resourcesList name="pin" requiredResourceUri="http://resources/TSSOP38.0.0/devicepackage/0/pin14"/>
   </provided>
   <provided xsi:type="ResourceModel:ResourceGroup" name="13" URI="http://resources/tssop38.0.0/devicepackage/0/13">
+    <upwardMapList xsi:type="ResourceModel:HWResource" href="../../APPS/UART/v4_1_12/UART_0.app#//@hwResources.10"/>
     <resourcesList name="pin" requiredResourceUri="http://resources/TSSOP38.0.0/devicepackage/0/pin13"/>
   </provided>
   <provided xsi:type="ResourceModel:ResourceGroup" name="16" URI="http://resources/tssop38.0.0/devicepackage/0/16">
@@ -33,11 +35,9 @@
     <resourcesList name="pin" requiredResourceUri="http://resources/TSSOP38.0.0/devicepackage/0/pin38"/>
   </provided>
   <provided xsi:type="ResourceModel:ResourceGroup" name="35" URI="http://resources/tssop38.0.0/devicepackage/0/35">
-    <upwardMapList xsi:type="ResourceModel:HWResource" href="../../APPS/ANALOG_IO/v4_0_10/ANALOG_IO_0.app#//@hwResources.1"/>
     <resourcesList name="pin" requiredResourceUri="http://resources/TSSOP38.0.0/devicepackage/0/pin35"/>
   </provided>
   <provided xsi:type="ResourceModel:ResourceGroup" name="36" URI="http://resources/tssop38.0.0/devicepackage/0/36">
-    <upwardMapList xsi:type="ResourceModel:HWResource" href="../../APPS/ANALOG_IO/v4_0_10/ANALOG_IO_1.app#//@hwResources.1"/>
     <resourcesList name="pin" requiredResourceUri="http://resources/TSSOP38.0.0/devicepackage/0/pin36"/>
   </provided>
 </ResourceModel:DevicePackage>
